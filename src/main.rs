@@ -37,7 +37,7 @@ enum Action {
         project: PathBuf,
         #[arg(long)]
         name: Option<String>,
-        #[arg(long)]
+        #[arg(long, help = "Skip confirmation prompt")]
         yes: bool,
     },
     /// List registered applications.
@@ -47,7 +47,7 @@ enum Action {
     /// Remove tracked files and managed executable symlinks.
     Uninstall {
         name: String,
-        #[arg(long)]
+        #[arg(long, help = "Skip confirmation prompt")]
         yes: bool,
     },
 }
