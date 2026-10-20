@@ -1,0 +1,106 @@
+name: Build and Release Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    
+    - name: Install packaging tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y dpkg rpm
+    
+    - name: Build release
+      run: cargo build --release
+    
+    - name: Create releases directory
+      run: mkdir -p releases
+    
+    - name: Create .pkg.tar.gz
+      run: |
+        mkdir -p releases/pkg/usr/local/bin
+        mkdir -p releases/pkg/usr/local/share/man/man1
+        install -m 755 target/release/makekeeper releases/pkg/usr/local/bin/makekeeper
+        install -m 644 makekeeper.1 releases/pkg/usr/local/share/man/man1/makekeeper.1
+        tar czf releases/makekeeper-0.1.0-x86_64.pkg.tar.gz -C releases/pkg .
+        rm -rf releases/pkg
+    
+    - name: Create .deb
+      run: |
+        mkdir -p releases/deb/DEBIAN
+        mkdir -p releases/deb/usr/local/bin
+        mkdir -p releases/deb/usr/local/share/man/man1
+        install -m 755 target/release/makekeeper releases/deb/usr/local/bin/makekeeper
+        install -m 644 makekeeper.1 releases/deb/usr/local/share/man/man1/makekeeper.1
+        cat > releases/deb/DEBIAN/control <<EOF
+        Package: makekeeper
+        Version: 0.1.0
+        Section: utils
+        Priority: optional
+        Architecture: amd64
+        Maintainer: makekeeper contributors
+        Description: A safer installer for Makefile-based Linux applications
+         makekeeper provides a controlled way to install applications that use GNU Make build systems.
+        EOF
+        dpkg-deb -b releases/deb releases/makekeeper_0.1.0_amd64.deb
+        rm -rf releases/deb
+    
+    - name: Create .rpm
+      run: |
+        mkdir -p releases/rpmroot/usr/local/bin
+        mkdir -p releases/rpmroot/usr/local/share/man/man1
+        install -m 755 target/release/makekeeper releases/rpmroot/usr/local/bin/makekeeper
+        install -m 644 makekeeper.1 releases/rpmroot/usr/local/share/man/man1/makekeeper.1
+        cat > releases/makekeeper.spec <<EOF
+        Name: makekeeper
+        Version: 0.1.0
+        Release: 1
+        Summary: A safer installer for Makefile-based Linux applications
+        License: GPL-3.0
+        BuildRoot: %{_builddir}/%{name}-root
+        
+        %description
+        makekeeper provides a controlled way to install applications that use GNU Make build systems.
+        
+        %files
+        /usr/local/bin/makekeeper
+        /usr/local/share/man/man1/makekeeper.1
+        EOF
+        rpmbuild -bb releases/makekeeper.spec --buildroot ${{ github.workspace }}/releases/rpmroot --define "_rpmdir ${{ github.workspace }}/releases"
+        rm -rf releases/rpmroot releases/makekeeper.spec
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-packages
+        path: |
+          releases/*.deb
+          releases/*.rpm
+          releases/*.pkg.tar.gz
+    
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          releases/*.deb
+          releases/*.rpm
+          releases/*.pkg.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

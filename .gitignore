@@ -17,3 +17,6 @@ Thumbs.db
 # Backup
 *.bak
 *.tmp
+
+# Build artifacts
+releases/
