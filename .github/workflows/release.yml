@@ -44,7 +44,7 @@ jobs:
     
     - name: Install Rust (Fedora)
       if: matrix.os == 'fedora'
-      run: dnf install -y rust cargo
+      run: dnf install -y rust cargo && dnf groupinstall -y "Development Tools"
     
     - name: Build release
       run: cargo build --release
