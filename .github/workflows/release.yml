@@ -55,6 +55,7 @@ jobs:
     - name: Create .pkg.tar.gz (Arch)
       if: matrix.package == 'pkg'
       run: |
+        mkdir -p /tmp/makekeeper-build
         cp -r $GITHUB_WORKSPACE/* /tmp/makekeeper-build/
         cd /tmp/makekeeper-build
         makepkg -s --noconfirm
