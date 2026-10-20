@@ -61,7 +61,7 @@ pub fn update(yes: bool, verbose: bool) -> Result<()> {
         let git_url = record.git_url.as_ref().unwrap();
         let name = &record.name;
 
-        println!("\nUpdating {}...", name);
+        println!("Updating {}...", name);
 
         // Create a cache directory for this repo
         // Use a sanitized version of the git URL as the cache name
@@ -208,7 +208,9 @@ pub fn update(yes: bool, verbose: bool) -> Result<()> {
         };
 
         if !has_update {
-            println!("{} is already up to date", name);
+            if verbose {
+                println!("{} is already up to date", name);
+            }
             continue;
         }
 
@@ -217,7 +219,6 @@ pub fn update(yes: bool, verbose: bool) -> Result<()> {
 
         match install_result {
             Ok(_) => {
-                println!("Updated {}", name);
                 updated.push(name.clone());
             }
             Err(e) => {

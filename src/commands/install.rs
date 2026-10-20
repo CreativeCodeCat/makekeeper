@@ -2,7 +2,7 @@ use anyhow::{Context, Result, bail};
 use std::fs;
 use std::os::unix::fs::{PermissionsExt, symlink};
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use walkdir::WalkDir;
 
 use crate::config::{APP_ROOT, BIN_DIR, MAN_DIR};
@@ -41,16 +41,20 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
         bail!("installation prefix already exists: {}", prefix.display());
     }
 
-    println!("Source:  {}", project.display());
-    println!("Name:    {name}");
-    println!("Prefix:  {}", prefix.display());
-    println!("Links:   executable files in {APP_ROOT} will be linked into {BIN_DIR}");
-    println!("\nMakefiles can execute arbitrary code. Only install projects you trust.");
+    if verbose {
+        println!("Source:  {}", project.display());
+        println!("Name:    {name}");
+        println!("Prefix:  {}", prefix.display());
+        println!("Links:   executable files in {APP_ROOT} will be linked into {BIN_DIR}");
+        println!("\nMakefiles can execute arbitrary code. Only install projects you trust.");
+    }
 
     // Early check: if the app name already exists in /usr/local/bin, warn but continue.
     let potential_link = Path::new(BIN_DIR).join(&name);
     if fs::symlink_metadata(&potential_link).is_ok() {
-        eprintln!("warning: {} will be overwritten", potential_link.display());
+        if verbose {
+            eprintln!("warning: {} will be overwritten", potential_link.display());
+        }
     }
 
     if !yes && !confirm("Build and install this project? [y/N] ")? {
@@ -60,12 +64,23 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
 
     // Now uninstall if override is set and installation exists
     if override_ && record_file.exists() {
-        eprintln!("Overriding existing installation of {name}...");
+        if verbose {
+            eprintln!("Overriding existing installation of {name}...");
+        }
         uninstall::uninstall(&name, true, false)?;
     }
 
     // Build the default Make target.
-    let status = Command::new("make").current_dir(&project).status()?;
+    let make_status = if verbose {
+        Command::new("make").current_dir(&project).status()
+    } else {
+        Command::new("make")
+            .current_dir(&project)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+    };
+    let status = make_status?;
     if !status.success() {
         bail!("make failed; installation stopped");
     }
@@ -74,7 +89,7 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
     let stage = std::env::temp_dir().join(format!("makekeeper-{}-{}", std::process::id(), now()));
     fs::create_dir(&stage)?;
 
-    let result = stage_install(&project, &prefix, &stage);
+    let result = stage_install(&project, &prefix, &stage, verbose);
     if let Err(e) = result {
         let _ = fs::remove_dir_all(&stage);
         return Err(e);
@@ -106,9 +121,11 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
     }
 
     // Warn about existing files that will be overwritten.
-    for (_, destination) in &staged_files {
-        if fs::symlink_metadata(destination).is_ok() {
-            eprintln!("warning: {} will be overwritten", destination.display());
+    if verbose {
+        for (_, destination) in &staged_files {
+            if fs::symlink_metadata(destination).is_ok() {
+                eprintln!("warning: {} will be overwritten", destination.display());
+            }
         }
     }
 
@@ -360,25 +377,38 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
     }
 
     let _ = fs::remove_dir_all(&stage);
-    println!(
-        "Installed {name}: {} files, {} symlinks",
-        record.files.len(),
-        record.links.len()
-    );
+    if verbose {
+        println!(
+            "Installed {name}: {} files, {} symlinks",
+            record.files.len(),
+            record.links.len()
+        );
+    }
     Ok(())
 }
 
-fn stage_install(project: &Path, prefix: &Path, stage: &Path) -> Result<()> {
+fn stage_install(project: &Path, prefix: &Path, stage: &Path, verbose: bool) -> Result<()> {
     let prefix_arg = format!("PREFIX={}", prefix.display());
     let destdir_arg = format!("DESTDIR={}", stage.display());
 
-    let status = Command::new("make")
-        .current_dir(project)
-        .arg("install")
-        .arg(&prefix_arg)
-        .arg(&destdir_arg)
-        .status()
-        .context("could not run make install")?;
+    let status = if verbose {
+        Command::new("make")
+            .current_dir(project)
+            .arg("install")
+            .arg(&prefix_arg)
+            .arg(&destdir_arg)
+            .status()
+    } else {
+        Command::new("make")
+            .current_dir(project)
+            .arg("install")
+            .arg(&prefix_arg)
+            .arg(&destdir_arg)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+    }
+    .context("could not run make install")?;
 
     if !status.success() {
         bail!("make install failed");
