@@ -102,41 +102,30 @@ jobs:
     - name: Create releases directory
       run: mkdir -p releases
 
-    - name: Create .spec file
+    - name: Create .rpm
       run: |
-        export SOURCE_DATE_EPOCH=$(date +%s)
-        mkdir -p $HOME/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
-        mkdir -p $HOME/rpmbuild/BUILDROOT/makekeeper-0.1.0-x86_64/usr/local/bin
-        mkdir -p $HOME/rpmbuild/BUILDROOT/makekeeper-0.1.0-x86_64/usr/local/share/man/man1
-        install -m 755 target/release/makekeeper $HOME/rpmbuild/BUILDROOT/makekeeper-0.1.0-x86_64/usr/local/bin/makekeeper
-        install -m 644 makekeeper.1 $HOME/rpmbuild/BUILDROOT/makekeeper-0.1.0-x86_64/usr/local/share/man/man1/makekeeper.1
-
-        cat > $HOME/rpmbuild/SPECS/makekeeper.spec <<EOF
+        mkdir -p releases/rpmroot/usr/local/bin
+        mkdir -p releases/rpmroot/usr/local/share/man/man1
+        install -m 755 target/release/makekeeper releases/rpmroot/usr/local/bin/makekeeper
+        install -m 644 makekeeper.1 releases/rpmroot/usr/local/share/man/man1/makekeeper.1
+        cat > releases/makekeeper.spec <<EOF
         Name: makekeeper
         Version: 0.1.0
-        Release: 1%{?dist}
+        Release: 1
         Summary: A safer installer for Makefile-based Linux applications
         License: GPL-3.0
-        BuildArch: x86_64
+        BuildRoot: %{_builddir}/%{name}-root
         AutoReqProv: no
 
         %description
         makekeeper provides a controlled way to install applications that use GNU Make build systems.
 
-        %install
-        # Files are already in buildroot
-
         %files
         /usr/local/bin/makekeeper
         /usr/local/share/man/man1/makekeeper.1
         EOF
-
-        rpmbuild -bb $HOME/rpmbuild/SPECS/makekeeper.spec \
-            --buildroot $HOME/rpmbuild/BUILDROOT/makekeeper-0.1.0-x86_64 \
-            --define "_topdir $HOME/rpmbuild"
-
-        cp $HOME/rpmbuild/RPMS/x86_64/*.rpm releases/
-        rm -rf $HOME/rpmbuild
+        rpmbuild -bb releases/makekeeper.spec --buildroot $GITHUB_WORKSPACE/releases/rpmroot --define "_rpmdir $GITHUB_WORKSPACE/releases"
+        rm -rf releases/rpmroot releases/makekeeper.spec
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
