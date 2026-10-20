@@ -18,9 +18,6 @@ jobs:
     - name: Install Rust
       run: pacman -Sy --noconfirm rust base-devel binutils
     
-    - name: Build release
-      run: cargo build --release
-    
     - name: Create releases directory
       run: mkdir -p releases
     
@@ -31,7 +28,7 @@ jobs:
         cp -r $GITHUB_WORKSPACE/* /tmp/makekeeper-build/
         chown -R builder:builder /tmp/makekeeper-build
         cd /tmp/makekeeper-build
-        su builder -c "makepkg -s --noconfirm"
+        su builder -c "makepkg --noconfirm"
         cp *.pkg.tar.zst $GITHUB_WORKSPACE/releases/
     
     - name: Upload artifact
@@ -95,7 +92,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Install Rust
-      run: dnf install -y rust cargo && dnf groupinstall -y "Development Tools"
+      run: dnf install -y rust cargo rpmbuild
     
     - name: Build release
       run: cargo build --release
