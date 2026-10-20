@@ -8,9 +8,11 @@ makekeeper provides a controlled way to install applications that use GNU Make b
 
 - **Tracked installations**: Records all files and symlinks created during installation
 - **Safe uninstallation**: Removes only unchanged files, preserving user modifications
-- **Conflict detection**: Prevents overwriting existing files or symlinks
+- **Conflict warnings**: Warns before overwriting existing files or symlinks
 - **Preview before install**: Inspect Makefiles and preview installation commands
 - **Executable symlinks**: Automatically links executables from `bin/` directories to `/usr/local/bin`
+- **Man page support**: Automatically symlinks man pages to `/usr/share/man`
+- **Modular architecture**: Clean codebase with organized modules for maintainability
 
 ## Installation
 
@@ -32,10 +34,11 @@ sudo makekeeper install /path/to/project
 This will:
 1. Build the project using `make`
 2. Stage the installation to a temporary directory
-3. Check for conflicts with existing files
+3. Check for conflicts with existing files (warns before overwriting)
 4. Ask for confirmation before proceeding
 5. Install to `/opt/makekeeper/apps/<name>`
 6. Create symlinks in `/usr/local/bin` for executables
+7. Create symlinks in `/usr/share/man` for man pages
 
 You can specify a custom name:
 
@@ -127,6 +130,46 @@ Installation records are stored in:
 - GNU Make
 - Rust toolchain (for building makekeeper itself)
 - Root/sudo access for installation and management
+
+## Development
+
+Build the project:
+
+```bash
+cargo build --release
+```
+
+Run tests:
+
+```bash
+cargo test
+```
+
+Check code without building:
+
+```bash
+cargo check
+```
+
+The codebase is organized into modules for clarity and maintainability. Each command has its own module in `src/commands/`, and shared functionality is separated into utility modules.
+
+## Project Structure
+
+```
+src/
+├── main.rs           # Entry point and CLI dispatch
+├── cli.rs            # CLI argument definitions
+├── config.rs         # Configuration constants
+├── models.rs         # Data structures (Record, InstalledFile, ManagedLink)
+├── utils.rs          # Utility functions
+├── registry.rs       # Registry operations
+└── commands/         # Command implementations
+    ├── inspect.rs    # Inspect project Makefile
+    ├── install.rs    # Install a project
+    ├── list.rs       # List installed applications
+    ├── info.rs       # Show application details
+    └── uninstall.rs  # Uninstall an application
+```
 
 ## License
 
