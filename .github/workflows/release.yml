@@ -86,53 +86,68 @@ jobs:
         path: releases/*.deb
 
   build-fedora:
-    runs-on: ubuntu-latest
-    container: fedora:latest
+        runs-on: ubuntu-latest
+        container: fedora:latest
     
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+        steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
     
-    - name: Install Rust
-      run: dnf install -y rust cargo rpmbuild
+        - name: Install Rust and RPM tools
+          run: dnf install -y rust cargo rpm-build
     
-    - name: Build release
-      run: cargo build --release
+        - name: Build release
+          run: cargo build --release
     
-    - name: Create releases directory
-      run: mkdir -p releases
-    
-    - name: Create .rpm
-      run: |
-        mkdir -p releases/rpmroot/usr/local/bin
-        mkdir -p releases/rpmroot/usr/local/share/man/man1
-        install -m 755 target/release/makekeeper releases/rpmroot/usr/local/bin/makekeeper
-        install -m 644 makekeeper.1 releases/rpmroot/usr/local/share/man/man1/makekeeper.1
-        cat > releases/makekeeper.spec <<EOF
-        Name: makekeeper
-        Version: 0.1.0
-        Release: 1
-        Summary: A safer installer for Makefile-based Linux applications
-        License: GPL-3.0
-        BuildRoot: %{_builddir}/%{name}-root
-        AutoReqProv: no
+        - name: Create releases directory
+          run: mkdir -p releases
+
+        - name: Create .spec file
+          run: |
+            cat > releases/makekeeper.spec <<'EOF'
+            Name: makekeeper
+            Version: 0.1.0
+            Release: 1%{?dist}
+            Summary: A safer installer for Makefile-based Linux applications
+            License: GPL-3.0
+            BuildArch: x86_64
+            AutoReqProv: no
+
+            %description
+            makekeeper provides a controlled way to install applications
+            that use GNU Make build systems.
+
+            %files
+            /usr/local/bin/makekeeper
+            /usr/local/share/man/man1/makekeeper.1
+            EOF
+
+            rpmbuild -bb releases/makekeeper.spec \
+                --buildroot "$GITHUB_WORKSPACE/releases/rpmroot" \
+                --define "_topdir $GITHUB_WORKSPACE/releases/rpmbuild" \
+                --define "_rpmdir $GITHUB_WORKSPACE/releases"
+
+            echo "Checking for generated RPM files..."
+            find releases -type f -name '*.rpm' -print
+
+            RPM_FILE="$(find releases -type f -name '*.rpm' -print -quit)"
+
+            if [ -z "$RPM_FILE" ]; then
+                echo "ERROR: No RPM package was generated."
+                exit 1
+            fi
+
+            echo "RPM created successfully: $RPM_FILE"
+
+            rm -rf releases/rpmroot releases/rpmbuild
+            rm -f releases/makekeeper.spec
+
+        - name: Upload artifact
+          uses: actions/upload-artifact@v4
+          with:
+            name: fedora-package
+            path: releases/**/*.rpm
         
-        %description
-        makekeeper provides a controlled way to install applications that use GNU Make build systems.
-        
-        %files
-        /usr/local/bin/makekeeper
-        /usr/local/share/man/man1/makekeeper.1
-        EOF
-        rpmbuild -bb releases/makekeeper.spec --buildroot $GITHUB_WORKSPACE/releases/rpmroot --define "_rpmdir $GITHUB_WORKSPACE/releases"
-        rm -rf releases/rpmroot releases/makekeeper.spec
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: fedora-package
-        path: releases/*.rpm
-  
   release:
     needs: [build-arch, build-ubuntu, build-fedora]
     runs-on: ubuntu-latest
