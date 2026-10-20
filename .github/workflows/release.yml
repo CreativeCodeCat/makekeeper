@@ -105,12 +105,13 @@ jobs:
     - name: Create .spec file
       run: |
         export SOURCE_DATE_EPOCH=$(date +%s)
-        mkdir -p releases/rpmroot/usr/local/bin
-        mkdir -p releases/rpmroot/usr/local/share/man/man1
-        install -m 755 target/release/makekeeper releases/rpmroot/usr/local/bin/makekeeper
-        install -m 644 makekeeper.1 releases/rpmroot/usr/local/share/man/man1/makekeeper.1
+        mkdir -p $HOME/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+        mkdir -p $HOME/rpmbuild/BUILDROOT/makekeeper-0.1.0-x86_64/usr/local/bin
+        mkdir -p $HOME/rpmbuild/BUILDROOT/makekeeper-0.1.0-x86_64/usr/local/share/man/man1
+        install -m 755 target/release/makekeeper $HOME/rpmbuild/BUILDROOT/makekeeper-0.1.0-x86_64/usr/local/bin/makekeeper
+        install -m 644 makekeeper.1 $HOME/rpmbuild/BUILDROOT/makekeeper-0.1.0-x86_64/usr/local/share/man/man1/makekeeper.1
 
-        cat > releases/makekeeper.spec <<'EOF'
+        cat > $HOME/rpmbuild/SPECS/makekeeper.spec <<EOF
         Name: makekeeper
         Version: 0.1.0
         Release: 1%{?dist}
@@ -120,8 +121,7 @@ jobs:
         AutoReqProv: no
 
         %description
-        makekeeper provides a controlled way to install applications
-        that use GNU Make build systems.
+        makekeeper provides a controlled way to install applications that use GNU Make build systems.
 
         %install
         # Files are already in buildroot
@@ -131,29 +131,12 @@ jobs:
         /usr/local/share/man/man1/makekeeper.1
         EOF
 
-        pwd
-        ls -la releases/rpmroot/usr/local/bin/
-        ls -la releases/rpmroot/usr/local/share/man/man1/
+        rpmbuild -bb $HOME/rpmbuild/SPECS/makekeeper.spec \
+            --buildroot $HOME/rpmbuild/BUILDROOT/makekeeper-0.1.0-x86_64 \
+            --define "_topdir $HOME/rpmbuild"
 
-        rpmbuild -bb releases/makekeeper.spec \
-            --buildroot "$PWD/releases/rpmroot" \
-            --define "_topdir $PWD/releases/rpmbuild" \
-            --define "_rpmdir $PWD/releases"
-
-        echo "Checking for generated RPM files..."
-        find releases -type f -name '*.rpm' -print
-
-        RPM_FILE="$(find releases -type f -name '*.rpm' -print -quit)"
-
-        if [ -z "$RPM_FILE" ]; then
-            echo "ERROR: No RPM package was generated."
-            exit 1
-        fi
-
-        echo "RPM created successfully: $RPM_FILE"
-
-        rm -rf releases/rpmroot releases/rpmbuild
-        rm -f releases/makekeeper.spec
+        cp $HOME/rpmbuild/RPMS/x86_64/*.rpm releases/
+        rm -rf $HOME/rpmbuild
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
