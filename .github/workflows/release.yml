@@ -137,19 +137,27 @@ jobs:
     needs: [build-arch, build-ubuntu, build-fedora]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-    
+    permissions:
+      contents: write
+
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Download all artifacts
       uses: actions/download-artifact@v4
       with:
         path: releases
-    
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          releases/**/*.deb
-          releases/**/*.rpm
-          releases/**/*.pkg.tar.zst
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Move packages to releases folder
+      run: |
+        find releases -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.pkg.tar.zst" \) -exec mv {} releases/ \;
+        find releases -type d -empty -delete
+
+    - name: Commit and push packages
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add releases/
+        git commit -m "chore(release): Add release packages"
+        git push
