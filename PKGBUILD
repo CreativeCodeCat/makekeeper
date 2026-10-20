@@ -10,18 +10,11 @@ depends=()
 makedepends=('rust' 'cargo')
 options=('strip')
 
-prepare() {
-  cd "$srcdir"
-  # The workflow will copy the source here
-}
-
 build() {
-  cd "$srcdir"
   cargo build --release
 }
 
 package() {
-  cd "$srcdir"
   install -Dm755 target/release/makekeeper "$pkgdir/usr/local/bin/makekeeper"
   install -Dm644 makekeeper.1 "$pkgdir/usr/local/share/man/man1/makekeeper.1"
 }
