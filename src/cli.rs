@@ -24,6 +24,8 @@ pub enum Action {
         yes: bool,
         #[arg(long, help = "Override existing installation")]
         override_: bool,
+        #[arg(long, help = "Show detailed installation output")]
+        verbose: bool,
     },
     /// Clone a git repository and install it.
     Git {
@@ -32,6 +34,10 @@ pub enum Action {
         name: Option<String>,
         #[arg(long, help = "Skip confirmation prompt")]
         yes: bool,
+        #[arg(long, help = "Override existing installation")]
+        override_: bool,
+        #[arg(long, help = "Show detailed installation output")]
+        verbose: bool,
     },
     /// List registered applications.
     List,
@@ -42,5 +48,7 @@ pub enum Action {
         name: String,
         #[arg(long, help = "Skip confirmation prompt")]
         yes: bool,
+        #[arg(long, help = "Show detailed removal output")]
+        verbose: bool,
     },
 }

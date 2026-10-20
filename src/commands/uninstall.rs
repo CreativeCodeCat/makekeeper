@@ -7,13 +7,15 @@ use walkdir::WalkDir;
 use crate::registry::{load_record, record_path};
 use crate::utils::{confirm, hash_file, root_required};
 
-pub fn uninstall(name: &str, yes: bool) -> Result<()> {
+pub fn uninstall(name: &str, yes: bool, verbose: bool) -> Result<()> {
     root_required()?;
     let record = load_record(name)?;
 
-    println!("Application: {name}");
-    println!("Tracked files: {}", record.files.len());
-    println!("Symlinks: {}", record.links.len());
+    if verbose {
+        println!("Application: {name}");
+        println!("Tracked files: {}", record.files.len());
+        println!("Symlinks: {}", record.links.len());
+    }
 
     if !yes && !confirm("Remove unchanged tracked files? [y/N] ")? {
         println!("Cancelled.");
@@ -27,10 +29,14 @@ pub fn uninstall(name: &str, yes: bool) -> Result<()> {
         match fs::read_link(path) {
             Ok(target) if target.to_string_lossy() == link.target => {
                 fs::remove_file(path)?;
-                println!("Removed link {}", path.display());
+                if verbose {
+                    println!("Removed link {}", path.display());
+                }
             }
             Ok(_) => {
-                eprintln!("Keeping modified symlink {}", path.display());
+                if verbose {
+                    eprintln!("Keeping modified symlink {}", path.display());
+                }
                 skipped = true;
             }
             Err(e) if e.kind() == io::ErrorKind::NotFound => {}
@@ -66,9 +72,13 @@ pub fn uninstall(name: &str, yes: bool) -> Result<()> {
 
         if unchanged {
             fs::remove_file(path)?;
-            println!("Removed {}", path.display());
+            if verbose {
+                println!("Removed {}", path.display());
+            }
         } else {
-            eprintln!("Keeping changed or unexpected file {}", path.display());
+            if verbose {
+                eprintln!("Keeping changed or unexpected file {}", path.display());
+            }
             skipped = true;
         }
     }
@@ -89,10 +99,14 @@ pub fn uninstall(name: &str, yes: bool) -> Result<()> {
     }
 
     if skipped {
-        println!("Some items were retained. Registry kept for manual review.");
+        if verbose {
+            println!("Some items were retained. Registry kept for manual review.");
+        }
     } else {
         fs::remove_file(record_path(name))?;
-        println!("Uninstalled {name}.");
+        if verbose {
+            println!("Uninstalled {name}.");
+        }
     }
     Ok(())
 }

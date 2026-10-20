@@ -6,7 +6,7 @@ use std::process::Command;
 use crate::commands::install;
 use crate::utils::root_required;
 
-pub fn git_install(url: String, name: Option<String>, yes: bool) -> Result<()> {
+pub fn git_install(url: String, name: Option<String>, yes: bool, override_: bool, verbose: bool) -> Result<()> {
     // Check for root privileges
     root_required()?;
 
@@ -41,7 +41,7 @@ pub fn git_install(url: String, name: Option<String>, yes: bool) -> Result<()> {
     println!("Repository cloned to {}", temp_dir.display());
 
     // Call install with the cloned directory
-    let result = install::install(temp_dir.as_path(), name, yes);
+    let result = install::install(temp_dir.as_path(), name, yes, override_, verbose);
 
     // Clean up the cloned directory
     let _ = fs::remove_dir_all(&temp_dir);

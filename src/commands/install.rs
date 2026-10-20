@@ -9,8 +9,9 @@ use crate::config::{APP_ROOT, BIN_DIR, MAN_DIR};
 use crate::models::{Record, InstalledFile, ManagedLink};
 use crate::registry::{record_path, rollback_files, rollback_links, save_record};
 use crate::utils::{confirm, hash_file, now, project_dir, root_required, valid_name};
+use crate::commands::uninstall;
 
-pub fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()> {
+pub fn install(project_arg: &Path, name: Option<String>, yes: bool, override_: bool, verbose: bool) -> Result<()> {
     root_required()?;
     let project = project_dir(project_arg)?;
     let name = name.unwrap_or_else(|| {
@@ -27,7 +28,12 @@ pub fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()
 
     let record_file = record_path(&name);
     if record_file.exists() {
-        bail!("{name} is already registered");
+        if override_ {
+            eprintln!("Overriding existing installation of {name}...");
+            uninstall::uninstall(&name, true, false)?;
+        } else {
+            bail!("{name} is already registered");
+        }
     }
 
     let prefix = Path::new(APP_ROOT).join(&name);
@@ -178,6 +184,9 @@ pub fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()
             if metadata.file_type().is_symlink() {
                 let target = fs::read_link(source)?;
                 symlink(&target, destination)?;
+                if verbose {
+                    println!("Created symlink: {}", destination.display());
+                }
                 record.files.push(InstalledFile {
                     path: destination.to_string_lossy().into_owned(),
                     sha256: None,
@@ -189,6 +198,9 @@ pub fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()
                     destination,
                     fs::Permissions::from_mode(metadata.permissions().mode() & 0o777),
                 )?;
+                if verbose {
+                    println!("Installed: {}", destination.display());
+                }
                 record.files.push(InstalledFile {
                     path: destination.to_string_lossy().into_owned(),
                     sha256: Some(hash_file(destination)?),
@@ -236,6 +248,10 @@ pub fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()
 
         symlink(target, &link).with_context(|| format!("could not create {}", link.display()))?;
 
+        if verbose {
+            println!("Created symlink: {} -> {}", link.display(), target.display());
+        }
+
         record.links.push(ManagedLink {
             path: link.to_string_lossy().into_owned(),
             target: target.to_string_lossy().into_owned(),
@@ -281,6 +297,10 @@ pub fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()
         }
 
         symlink(target, &link).with_context(|| format!("could not create {}", link.display()))?;
+
+        if verbose {
+            println!("Created symlink: {} -> {}", link.display(), target.display());
+        }
 
         record.links.push(ManagedLink {
             path: link.to_string_lossy().into_owned(),

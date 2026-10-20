@@ -21,10 +21,10 @@ fn main() {
 fn run() -> Result<()> {
     match Cli::parse().command {
         Action::Inspect { project } => inspect(&project),
-        Action::Install { project, name, yes } => install(&project, name, yes),
-        Action::Git { url, name, yes } => git_install(url, name, yes),
+        Action::Install { project, name, yes, override_, verbose } => install(&project, name, yes, override_, verbose),
+        Action::Git { url, name, yes, override_, verbose } => git_install(url, name, yes, override_, verbose),
         Action::List => list(),
         Action::Info { name } => info(&name),
-        Action::Uninstall { name, yes } => uninstall(&name, yes),
+        Action::Uninstall { name, yes, verbose } => uninstall(&name, yes, verbose),
     }
 }

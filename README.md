@@ -52,6 +52,18 @@ Or skip confirmation with `--yes`:
 sudo makekeeper install /path/to/project --yes
 ```
 
+Override an existing installation:
+
+```bash
+sudo makekeeper install /path/to/project --override
+```
+
+Show detailed installation output with `--verbose`:
+
+```bash
+sudo makekeeper install /path/to/project --verbose
+```
+
 ### Install from a git repository
 
 ```bash
@@ -75,6 +87,18 @@ Or skip confirmation with `--yes`:
 
 ```bash
 sudo makekeeper git <git-url> --yes
+```
+
+Override an existing installation:
+
+```bash
+sudo makekeeper git <git-url> --override
+```
+
+Show detailed installation output with `--verbose`:
+
+```bash
+sudo makekeeper git <git-url> --verbose
 ```
 
 ### Inspect a project
@@ -120,6 +144,12 @@ Skip confirmation with `--yes`:
 
 ```bash
 sudo makekeeper uninstall <name> --yes
+```
+
+Show detailed removal output with `--verbose`:
+
+```bash
+sudo makekeeper uninstall <name> --verbose
 ```
 
 ## Installation Directory Structure
