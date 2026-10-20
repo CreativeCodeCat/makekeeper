@@ -104,6 +104,7 @@ jobs:
 
     - name: Create .spec file
       run: |
+        export SOURCE_DATE_EPOCH=$(date +%s)
         mkdir -p releases/rpmroot/usr/local/bin
         mkdir -p releases/rpmroot/usr/local/share/man/man1
         install -m 755 target/release/makekeeper releases/rpmroot/usr/local/bin/makekeeper
@@ -130,10 +131,14 @@ jobs:
         /usr/local/share/man/man1/makekeeper.1
         EOF
 
+        pwd
+        ls -la releases/rpmroot/usr/local/bin/
+        ls -la releases/rpmroot/usr/local/share/man/man1/
+
         rpmbuild -bb releases/makekeeper.spec \
-            --buildroot "$GITHUB_WORKSPACE/releases/rpmroot" \
-            --define "_topdir $GITHUB_WORKSPACE/releases/rpmbuild" \
-            --define "_rpmdir $GITHUB_WORKSPACE/releases"
+            --buildroot "$PWD/releases/rpmroot" \
+            --define "_topdir $PWD/releases/rpmbuild" \
+            --define "_rpmdir $PWD/releases"
 
         echo "Checking for generated RPM files..."
         find releases -type f -name '*.rpm' -print
