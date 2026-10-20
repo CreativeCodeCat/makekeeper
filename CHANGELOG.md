@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :wrench: Code Quality:
 
+* Refactor git installation and update commands to use a shared cache directory ([42b8985](https://github.com/CodeWorksCreativeHub/mLauncher/commit/42b8985))
 * Refactor install command to support custom application names ([5531e4d](https://github.com/CodeWorksCreativeHub/mLauncher/commit/5531e4d))
 
 ## [v0.1.0](https://github.com/CodeWorksCreativeHub/mLauncher/tree/v0.1.0) - (20, October 2026)
