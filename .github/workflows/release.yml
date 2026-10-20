@@ -113,6 +113,7 @@ jobs:
         Summary: A safer installer for Makefile-based Linux applications
         License: GPL-3.0
         BuildRoot: %{_builddir}/%{name}-root
+        AutoReqProv: no
         
         %description
         makekeeper provides a controlled way to install applications that use GNU Make build systems.
@@ -121,7 +122,7 @@ jobs:
         /usr/local/bin/makekeeper
         /usr/local/share/man/man1/makekeeper.1
         EOF
-        rpmbuild -bb releases/makekeeper.spec --buildroot ${{ github.workspace }}/releases/rpmroot --define "_rpmdir ${{ github.workspace }}/releases"
+        rpmbuild -bb releases/makekeeper.spec --buildroot $GITHUB_WORKSPACE/releases/rpmroot --define "_rpmdir $GITHUB_WORKSPACE/releases"
         rm -rf releases/rpmroot releases/makekeeper.spec
     
     - name: Upload artifact
