@@ -1,7 +1,7 @@
 
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
-MANDIR ?= /usr/share/man/man1
+MANDIR ?= $(PREFIX)/share/man/man1
 CARGO ?= cargo
 INSTALL ?= install
 RM ?= rm

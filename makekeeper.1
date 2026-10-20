@@ -136,11 +136,7 @@ Installation records tracking files and symlinks.
 
 .SH SECURITY
 
-makekeeper requires root privileges for system-wide installation. Makefiles can execute arbitrary code—only install projects you trust. Always inspect a project with
-.B makekeeper inspect
-before installing. The
-.B make install
-step is not sandboxed.
+makekeeper requires root privileges for system-wide installation. Makefiles can execute arbitrary code; only install projects you trust. Always inspect a project with makekeeper inspect before installing. The make install step is not sandboxed.
 
 .SH REQUIREMENTS
 

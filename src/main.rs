@@ -203,13 +203,10 @@ fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()> {
     println!("Links:   executable files in {APP_ROOT} will be linked into {BIN_DIR}");
     println!("\nMakefiles can execute arbitrary code. Only install projects you trust.");
 
-    // Early check: if the app name already exists in /usr/local/bin, fail before building.
+    // Early check: if the app name already exists in /usr/local/bin, warn but continue.
     let potential_link = Path::new(BIN_DIR).join(&name);
     if fs::symlink_metadata(&potential_link).is_ok() {
-        bail!(
-            "{} already exists; refusing to overwrite",
-            potential_link.display()
-        );
+        eprintln!("warning: {} will be overwritten", potential_link.display());
     }
 
     if !yes && !confirm("Build and install this project? [y/N] ")? {
@@ -243,13 +240,14 @@ fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()> {
     }
 
     let mut staged_files = Vec::new();
-    for entry in WalkDir::new(&staged_root).follow_links(false) {
+    // Walk the entire stage directory to catch files installed outside the prefix
+    for entry in WalkDir::new(&stage).follow_links(false) {
         let entry = entry?;
         if entry.file_type().is_dir() {
             continue;
         }
-        let relative = entry.path().strip_prefix(&staged_root)?;
-        staged_files.push((entry.path().to_path_buf(), prefix.join(relative)));
+        let relative = entry.path().strip_prefix(&stage)?;
+        staged_files.push((entry.path().to_path_buf(), Path::new("/").join(relative)));
     }
 
     if staged_files.is_empty() {
@@ -257,18 +255,14 @@ fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()> {
         bail!("staged installation contains no files");
     }
 
-    // Never overwrite an existing file or symlink.
+    // Warn about existing files that will be overwritten.
     for (_, destination) in &staged_files {
         if fs::symlink_metadata(destination).is_ok() {
-            let _ = fs::remove_dir_all(&stage);
-            bail!(
-                "target exists; refusing to overwrite {}",
-                destination.display()
-            );
+            eprintln!("warning: {} will be overwritten", destination.display());
         }
     }
 
-    // Check for symlink conflicts before asking for confirmation.
+    // Warn about symlink conflicts before asking for confirmation.
     for (source, _) in &staged_files {
         let is_bin_file = source
             .parent()
@@ -288,25 +282,23 @@ fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()> {
         let link = Path::new(BIN_DIR).join(filename);
 
         if fs::symlink_metadata(&link).is_ok() {
-            let _ = fs::remove_dir_all(&stage);
-            bail!(
-                "{} already exists; refusing to overwrite",
-                link.display()
-            );
+            eprintln!("warning: {} will be overwritten", link.display());
         }
     }
 
     // Check for man page conflicts.
     for (source, _) in &staged_files {
-        let components: Vec<_> = source.components().collect();
+        let path_str = source.to_string_lossy();
 
-        let man_section = components.iter()
-            .position(|c| c.as_os_str() == "share")
-            .and_then(|i| components.get(i + 1))
-            .and_then(|c| if c.as_os_str() == "man" { Some(i + 1) } else { None })
-            .and_then(|i| components.get(i + 1))
-            .and_then(|c| c.as_os_str().to_str())
-            .and_then(|s| s.strip_prefix("man"))
+        // Check if path contains share/man/manN
+        if !path_str.contains("share/man/man") {
+            continue;
+        }
+
+        // Extract the man section (man1, man2, etc.)
+        let man_section = path_str
+            .split("share/man/man")
+            .nth(1)
             .and_then(|s| s.chars().next());
 
         if man_section.is_none() {
@@ -321,11 +313,7 @@ fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()> {
         let link = Path::new(MAN_DIR).join(&man_section_str).join(filename);
 
         if fs::symlink_metadata(&link).is_ok() {
-            let _ = fs::remove_dir_all(&stage);
-            bail!(
-                "{} already exists; refusing to overwrite",
-                link.display()
-            );
+            eprintln!("warning: {} will be overwritten", link.display());
         }
     }
 
@@ -343,6 +331,11 @@ fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()> {
         for (source, destination) in &staged_files {
             let metadata = fs::symlink_metadata(source)?;
             fs::create_dir_all(destination.parent().context("missing parent directory")?)?;
+
+            // Remove existing file/symlink if it exists
+            if fs::symlink_metadata(destination).is_ok() {
+                fs::remove_file(destination)?;
+            }
 
             if metadata.file_type().is_symlink() {
                 let target = fs::read_link(source)?;
@@ -398,6 +391,11 @@ fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()> {
         };
         let link = Path::new(BIN_DIR).join(filename);
 
+        // Remove existing symlink if it exists
+        if fs::symlink_metadata(&link).is_ok() {
+            fs::remove_file(&link)?;
+        }
+
         symlink(target, &link).with_context(|| format!("could not create {}", link.display()))?;
 
         record.links.push(ManagedLink {
@@ -409,16 +407,17 @@ fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()> {
     // Man pages in share/man/man*/ directories get symlinked to /usr/share/man.
     for file in &record.files {
         let target = Path::new(&file.path);
-        let components: Vec<_> = target.components().collect();
+        let path_str = target.to_string_lossy();
 
         // Check if path contains share/man/manN
-        let man_section = components.iter()
-            .position(|c| c.as_os_str() == "share")
-            .and_then(|i| components.get(i + 1))
-            .and_then(|c| if c.as_os_str() == "man" { Some(i + 1) } else { None })
-            .and_then(|i| components.get(i + 1))
-            .and_then(|c| c.as_os_str().to_str())
-            .and_then(|s| s.strip_prefix("man"))
+        if !path_str.contains("share/man/man") {
+            continue;
+        }
+
+        // Extract the man section (man1, man2, etc.)
+        let man_section = path_str
+            .split("share/man/man")
+            .nth(1)
             .and_then(|s| s.chars().next());
 
         if man_section.is_none() {
@@ -433,15 +432,9 @@ fn install(project_arg: &Path, name: Option<String>, yes: bool) -> Result<()> {
         let man_section_str = format!("man{}", man_section.unwrap());
         let link = Path::new(MAN_DIR).join(&man_section_str).join(filename);
 
+        // Remove existing symlink if it exists
         if fs::symlink_metadata(&link).is_ok() {
-            rollback_files(&record.files);
-            rollback_links(&record.links);
-            let _ = fs::remove_dir_all(&prefix);
-            let _ = fs::remove_dir_all(&stage);
-            bail!(
-                "{} already exists; refusing to overwrite",
-                link.display()
-            );
+            fs::remove_file(&link)?;
         }
 
         // Create parent directory if needed
@@ -651,6 +644,7 @@ fn load_record(name: &str) -> Result<Record> {
     for link in &record.links {
         let is_safe_path = Path::new(&link.path).starts_with(BIN_DIR)
             || Path::new(&link.path).starts_with(MAN_DIR);
+        // Man page symlinks point to files under the prefix, executable symlinks also point to prefix
         if !is_safe_path || !Path::new(&link.target).starts_with(&expected_prefix) {
             bail!("unsafe symlink record");
         }
