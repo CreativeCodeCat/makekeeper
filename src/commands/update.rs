@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -8,7 +7,7 @@ use crate::registry::get_all_records;
 use crate::utils::{confirm, root_required, try_clone_with_fallback};
 
 fn get_cache_dir() -> PathBuf {
-    Path::new("/var/lib/makekeeper").join("cache")
+    Path::new("/tmp").join("makekeeper-cache")
 }
 
 pub fn update(yes: bool, verbose: bool) -> Result<()> {
@@ -41,85 +40,166 @@ pub fn update(yes: bool, verbose: bool) -> Result<()> {
     let sudo_user = std::env::var("SUDO_USER").ok();
     let ssh_auth_sock = std::env::var("SSH_AUTH_SOCK").ok();
 
+    // Create cache directory
+    let cache_dir = get_cache_dir();
+    if let Some(ref user) = sudo_user {
+        // Create as the user to avoid permission issues
+        Command::new("sudo")
+            .arg("-u")
+            .arg(user)
+            .arg("mkdir")
+            .arg("-p")
+            .arg(&cache_dir)
+            .status()
+            .context("failed to create cache directory")?;
+    } else {
+        fs::create_dir_all(&cache_dir)
+            .context("failed to create cache directory")?;
+    }
+
     for record in updatable {
         let git_url = record.git_url.as_ref().unwrap();
         let name = &record.name;
 
         println!("\nUpdating {}...", name);
 
-        // Create a temporary directory for cloning
-        // Use /tmp when running under sudo to avoid permission issues
-        let temp_dir = if sudo_user.is_some() {
-            Path::new("/tmp").join(format!("makekeeper-update-{}-{}", name, std::process::id()))
-        } else {
-            env::temp_dir().join(format!("makekeeper-update-{}-{}", name, std::process::id()))
-        };
+        // Create a cache directory for this repo
+        // Use a sanitized version of the git URL as the cache name
+        let cache_name = git_url
+            .replace("://", "_")
+            .replace("/", "_")
+            .replace(":", "_")
+            .replace("@", "_");
+        let repo_cache_dir = cache_dir.join(&cache_name);
 
-        // Create temp directory as the user if running under sudo
-        if let Some(ref user) = sudo_user {
-            Command::new("sudo")
-                .arg("-u")
-                .arg(user)
-                .arg("mkdir")
-                .arg("-p")
-                .arg(&temp_dir)
-                .status()
-                .context("failed to create temporary directory")?;
-        } else {
-            fs::create_dir_all(&temp_dir)
-                .context("failed to create temporary directory for update")?;
-        }
+        // Clone or fetch the repository
+        if repo_cache_dir.exists() {
+            // Repository already cached, do a fetch
+            if let Some(ref user) = sudo_user {
+                let mut fetch_cmd = Command::new("sudo");
+                fetch_cmd
+                    .arg("-u")
+                    .arg(user)
+                    .arg("git")
+                    .arg("fetch")
+                    .arg("--quiet")
+                    .current_dir(&repo_cache_dir)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .env("HOME", format!("/home/{}", user));
 
-        // Clone the repository with SSH->HTTPS fallback
-        // Drop privileges to the original user for git clone to access SSH keys
-        if let Some(ref user) = sudo_user {
-            // Running under sudo - drop to original user for git clone
-            let mut clone_cmd = Command::new("sudo");
-            clone_cmd
-                .arg("-u")
-                .arg(user)
-                .arg("git")
-                .arg("clone")
-                .arg("--quiet")
-                .arg(git_url)
-                .arg(&temp_dir)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .env("HOME", format!("/home/{}", user));
-
-            if let Some(ref sock) = ssh_auth_sock {
-                clone_cmd.env("SSH_AUTH_SOCK", sock);
-            }
-
-            let status = clone_cmd.status();
-
-            match status {
-                Ok(s) if s.success() => {},
-                Ok(_) => {
-                    let _ = fs::remove_dir_all(&temp_dir);
-                    eprintln!("Failed to clone repository for {}", name);
-                    failed.push(name.clone());
-                    continue;
+                if let Some(ref sock) = ssh_auth_sock {
+                    fetch_cmd.env("SSH_AUTH_SOCK", sock);
                 }
-                Err(e) => {
-                    let _ = fs::remove_dir_all(&temp_dir);
+
+                let status = fetch_cmd.status();
+
+                match status {
+                    Ok(s) if s.success() => {},
+                    Ok(_) => {
+                        eprintln!("Failed to fetch repository for {}", name);
+                        failed.push(name.clone());
+                        continue;
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to fetch repository for {}: {}", name, e);
+                        failed.push(name.clone());
+                        continue;
+                    }
+                }
+            } else {
+                let status = Command::new("git")
+                    .arg("fetch")
+                    .arg("--quiet")
+                    .current_dir(&repo_cache_dir)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .status();
+
+                match status {
+                    Ok(s) if s.success() => {},
+                    Ok(_) => {
+                        eprintln!("Failed to fetch repository for {}", name);
+                        failed.push(name.clone());
+                        continue;
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to fetch repository for {}: {}", name, e);
+                        failed.push(name.clone());
+                        continue;
+                    }
+                }
+            }
+        } else {
+            // Not cached, do a fresh clone
+            if let Some(ref user) = sudo_user {
+                let mut clone_cmd = Command::new("sudo");
+                clone_cmd
+                    .arg("-u")
+                    .arg(user)
+                    .arg("git")
+                    .arg("clone")
+                    .arg("--quiet")
+                    .arg(git_url)
+                    .arg(&repo_cache_dir)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .env("HOME", format!("/home/{}", user));
+
+                if let Some(ref sock) = ssh_auth_sock {
+                    clone_cmd.env("SSH_AUTH_SOCK", sock);
+                }
+
+                let status = clone_cmd.status();
+
+                match status {
+                    Ok(s) if s.success() => {},
+                    Ok(_) => {
+                        eprintln!("Failed to clone repository for {}", name);
+                        failed.push(name.clone());
+                        continue;
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to clone repository for {}: {}", name, e);
+                        failed.push(name.clone());
+                        continue;
+                    }
+                }
+            } else {
+                if let Err(e) = try_clone_with_fallback(&repo_cache_dir, git_url) {
                     eprintln!("Failed to clone repository for {}: {}", name, e);
                     failed.push(name.clone());
                     continue;
                 }
             }
-        } else {
-            // Not running under sudo - use fallback logic
-            if let Err(e) = try_clone_with_fallback(&temp_dir, git_url) {
-                let _ = fs::remove_dir_all(&temp_dir);
-                eprintln!("Failed to clone repository for {}: {}", name, e);
+        }
+
+        // Reset to origin/HEAD to get the latest commit
+        let reset_status = Command::new("git")
+            .arg("reset")
+            .arg("--hard")
+            .arg("origin/HEAD")
+            .current_dir(&repo_cache_dir)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+
+        match reset_status {
+            Ok(s) if s.success() => {},
+            Ok(_) => {
+                eprintln!("Failed to reset repository for {}", name);
+                failed.push(name.clone());
+                continue;
+            }
+            Err(e) => {
+                eprintln!("Failed to reset repository for {}: {}", name, e);
                 failed.push(name.clone());
                 continue;
             }
         }
 
-        // Check the hash of the cloned repository
-        let cloned_hash = crate::commands::get_git_commit_hash(&temp_dir);
+        // Check the hash of the cached repository
+        let cloned_hash = crate::commands::get_git_commit_hash(&repo_cache_dir);
 
         let has_update = match (&record.last_commit_hash, cloned_hash) {
             (Some(last_hash), Some(new_hash)) => *last_hash != new_hash,
@@ -129,78 +209,19 @@ pub fn update(yes: bool, verbose: bool) -> Result<()> {
 
         if !has_update {
             println!("{} is already up to date", name);
-            let _ = fs::remove_dir_all(&temp_dir);
             continue;
         }
 
-        // Clone the repository with SSH->HTTPS fallback
-        // Drop privileges to the original user for git clone to access SSH keys
-        if let Some(ref user) = sudo_user {
-            // Running under sudo - drop to original user for git clone
-            let mut clone_cmd = Command::new("sudo");
-            clone_cmd
-                .arg("-u")
-                .arg(user)
-                .arg("git")
-                .arg("clone")
-                .arg("--quiet")
-                .arg(git_url)
-                .arg(&temp_dir)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .env("HOME", format!("/home/{}", user));
+        // Reinstall from the cached directory
+        let install_result = crate::commands::install::install(&repo_cache_dir, Some(name.clone()), true, true, verbose, Some(git_url.to_string()));
 
-            if let Some(ref sock) = ssh_auth_sock {
-                clone_cmd.env("SSH_AUTH_SOCK", sock);
-            }
-
-            let status = clone_cmd.status();
-
-            match status {
-                Ok(s) if s.success() => {},
-                Ok(_) => {
-                    let _ = fs::remove_dir_all(&temp_dir);
-                    eprintln!("Failed to clone repository for {}", name);
-                    failed.push(name.clone());
-                    continue;
-                }
-                Err(e) => {
-                    let _ = fs::remove_dir_all(&temp_dir);
-                    eprintln!("Failed to clone repository for {}: {}", name, e);
-                    failed.push(name.clone());
-                    continue;
-                }
-            }
-        } else {
-            // Not running under sudo - use fallback logic
-            if let Err(e) = try_clone_with_fallback(&temp_dir, git_url) {
-                let _ = fs::remove_dir_all(&temp_dir);
-                eprintln!("Failed to clone repository for {}: {}", name, e);
-                failed.push(name.clone());
-                continue;
-            }
-        }
-
-        // Reinstall using the install command (URL as-is)
-        let result = crate::commands::install::install(
-            temp_dir.as_path(),
-            Some(name.clone()),
-            true,  // yes
-            true,  // override
-            verbose,
-            Some(git_url.clone()),
-        );
-
-        // Clean up the cloned directory
-        let _ = fs::remove_dir_all(&temp_dir);
-
-        match result {
+        match install_result {
             Ok(_) => {
                 println!("Updated {}", name);
                 updated.push(name.clone());
             }
             Err(e) => {
-                eprintln!("Failed to update {}: {}", name, e);
+                eprintln!("Failed to reinstall {}: {}", name, e);
                 failed.push(name.clone());
             }
         }
