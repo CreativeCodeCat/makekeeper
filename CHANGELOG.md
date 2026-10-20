@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [v0.1.0 → Unreleased](https://github.com/CodeWorksCreativeHub/mLauncher/tree/main) - In Development
+
+### :wrench: Code Quality:
+
+* Refactor install command to support custom application names ([5531e4d](https://github.com/CodeWorksCreativeHub/mLauncher/commit/5531e4d))
+
 ## [v0.1.0](https://github.com/CodeWorksCreativeHub/mLauncher/tree/v0.1.0) - (20, October 2026)
 
 ### :bug: Bug Fixes:
