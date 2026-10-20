@@ -26,8 +26,10 @@ jobs:
     
     - name: Create .pkg.tar.zst
       run: |
-        sudo pacman -Sy --needed --noconfirm base-devel rust cargo git
-        makepkg --clean --force --nodeps
+        pacman -Sy --needed --noconfirm base-devel rust cargo git
+        useradd -m builder
+        chown -R builder:builder "${GITHUB_WORKSPACE}"
+        su builder -c "cd '${GITHUB_WORKSPACE}' && makepkg --clean --force"
         mkdir -p releases
         cp makekeeper-0.1.0-1-x86_64.pkg.tar.zst releases/
     
