@@ -1,0 +1,160 @@
+.TH MAKEKEEPER 1 "October 2026" "makekeeper 0.1.0" "User Commands"
+
+.SH NAME
+makekeeper \- A safer installer for Makefile-based Linux applications
+
+.SH SYNOPSIS
+.B makekeeper
+.RI [ COMMAND ]
+.RI [ OPTIONS ]
+
+.SH DESCRIPTION
+makekeeper provides a controlled way to install applications that use GNU Make build systems. It tracks all installed files and managed symlinks, enabling safe uninstallation and preventing conflicts with existing installations.
+
+Applications are installed to
+.IR /opt/makekeeper/apps/<name>/
+and executable symlinks are created in
+.IR /usr/local/bin/ .
+
+.SH COMMANDS
+
+.TP
+.B inspect PROJECT
+Inspect a project's Makefile and preview installation commands. This shows possible Make targets and a dry-run preview of the installation without actually installing.
+
+.TP
+.B install PROJECT [OPTIONS]
+Build and install a project. The project is built using
+.BR make ,
+staged to a temporary directory, checked for conflicts, and then installed.
+
+.RS
+.RS
+.TP
+.B \-\-name NAME
+Specify a custom application name. Defaults to the project directory name.
+
+.TP
+.B \-\-yes
+Skip the confirmation prompt.
+.RE
+.RE
+
+.TP
+.B list
+List all registered applications with file and symlink counts.
+
+.TP
+.B info NAME
+Display detailed information about an installed application, including source, prefix, installed files, and managed symlinks.
+
+.TP
+.B uninstall NAME [OPTIONS]
+Remove tracked files and managed executable symlinks. Only unchanged files are removed; modified files are preserved for manual review.
+
+.RS
+.RS
+.TP
+.B \-\-yes
+Skip the confirmation prompt.
+.RE
+.RE
+
+.SH OPTIONS
+
+.TP
+.B \-h, \-\-help
+Print help information.
+
+.TP
+.B \-V, \-\-version
+Print version information.
+
+.SH EXAMPLES
+
+Install a project:
+.RS
+.PP
+.nf
+sudo makekeeper install /path/to/project
+.fi
+.RE
+
+Install with a custom name:
+.RS
+.PP
+.nf
+sudo makekeeper install /path/to/project --name myapp
+.fi
+.RE
+
+Inspect before installing:
+.RS
+.PP
+.nf
+makekeeper inspect /path/to/project
+.fi
+.RE
+
+List installed applications:
+.RS
+.PP
+.nf
+sudo makekeeper list
+.fi
+.RE
+
+View installation details:
+.RS
+.PP
+.nf
+sudo makekeeper info myapp
+.fi
+.RE
+
+Uninstall an application:
+.RS
+.PP
+.nf
+sudo makekeeper uninstall myapp
+.fi
+.RE
+
+.SH FILES
+
+.TP
+.I /opt/makekeeper/apps/<name>/
+Installation prefix for applications.
+
+.TP
+.I /usr/local/bin/
+Directory where executable symlinks are created.
+
+.TP
+.I /var/lib/makekeeper/<name>.json
+Installation records tracking files and symlinks.
+
+.SH SECURITY
+
+makekeeper requires root privileges for system-wide installation. Makefiles can execute arbitrary code—only install projects you trust. Always inspect a project with
+.B makekeeper inspect
+before installing. The
+.B make install
+step is not sandboxed.
+
+.SH REQUIREMENTS
+
+\- Linux system
+.br
+\- GNU Make
+.br
+\- Rust toolchain (for building makekeeper)
+.br
+\- Root/sudo access for installation and management
+
+.SH SEE ALSO
+
+.BR make (1)
+
+.SH AUTHOR
+makekeeper v0.1.0
