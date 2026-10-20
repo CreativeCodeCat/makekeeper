@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :wrench: Code Quality:
 
+* Refactor release workflow to streamline RPM packaging process ([54e7917](https://github.com/CodeWorksCreativeHub/mLauncher/commit/54e7917))
 * Refactor Fedora build steps in release workflow ([0f279e9](https://github.com/CodeWorksCreativeHub/mLauncher/commit/0f279e9))
 * Refactor Fedora build steps in release workflow ([c94e27c](https://github.com/CodeWorksCreativeHub/mLauncher/commit/c94e27c))
 * Refactor release workflow for improved package creation ([3e199e1](https://github.com/CodeWorksCreativeHub/mLauncher/commit/3e199e1))
