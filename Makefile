@@ -13,8 +13,6 @@ DESTDIR ?=
 
 .PHONY: all build check install uninstall clean
 
-.PHONY: all build check install uninstall clean
-
 all: build
 
 build:

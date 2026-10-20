@@ -32,7 +32,7 @@ jobs:
     
     - name: Install Rust (Arch)
       if: matrix.os == 'archlinux'
-      run: pacman -Sy --noconfirm rust base-devel
+      run: pacman -Sy --noconfirm rust base-devel binutils
     
     - name: Install Rust (Ubuntu)
       if: matrix.os == 'ubuntu'
@@ -55,12 +55,10 @@ jobs:
     - name: Create .pkg.tar.gz (Arch)
       if: matrix.package == 'pkg'
       run: |
-        mkdir -p releases/pkg/usr/local/bin
-        mkdir -p releases/pkg/usr/local/share/man/man1
-        install -m 755 target/release/makekeeper releases/pkg/usr/local/bin/makekeeper
-        install -m 644 makekeeper.1 releases/pkg/usr/local/share/man/man1/makekeeper.1
-        tar czf releases/makekeeper-0.1.0-x86_64.pkg.tar.gz -C releases/pkg .
-        rm -rf releases/pkg
+        cp -r ${{ github.workspace }}/* /tmp/makekeeper-build/
+        cd /tmp/makekeeper-build
+        makepkg -s --noconfirm
+        cp *.pkg.tar.zst ${{ github.workspace }}/releases/
     
     - name: Create .deb (Ubuntu)
       if: matrix.package == 'deb'
@@ -115,7 +113,7 @@ jobs:
         path: |
           releases/*.deb
           releases/*.rpm
-          releases/*.pkg.tar.gz
+          releases/*.pkg.tar.zst
   
   release:
     needs: build
@@ -134,6 +132,6 @@ jobs:
         files: |
           releases/**/*.deb
           releases/**/*.rpm
-          releases/**/*.pkg.tar.gz
+          releases/**/*.pkg.tar.zst
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
