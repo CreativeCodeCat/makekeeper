@@ -28,16 +28,13 @@ pub fn install(project_arg: &Path, name: Option<String>, yes: bool, override_: b
 
     let record_file = record_path(&name);
     if record_file.exists() {
-        if override_ {
-            eprintln!("Overriding existing installation of {name}...");
-            uninstall::uninstall(&name, true, false)?;
-        } else {
+        if !override_ {
             bail!("{name} is already registered");
         }
     }
 
     let prefix = Path::new(APP_ROOT).join(&name);
-    if fs::symlink_metadata(&prefix).is_ok() {
+    if fs::symlink_metadata(&prefix).is_ok() && !override_ {
         bail!("installation prefix already exists: {}", prefix.display());
     }
 
@@ -56,6 +53,12 @@ pub fn install(project_arg: &Path, name: Option<String>, yes: bool, override_: b
     if !yes && !confirm("Build and install this project? [y/N] ")? {
         println!("Cancelled.");
         return Ok(());
+    }
+
+    // Now uninstall if override is set and installation exists
+    if override_ && record_file.exists() {
+        eprintln!("Overriding existing installation of {name}...");
+        uninstall::uninstall(&name, true, false)?;
     }
 
     // Build the default Make target.
