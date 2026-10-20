@@ -7,7 +7,7 @@ pub mod uninstall;
 pub mod update;
 
 pub use inspect::inspect;
-pub use install::install;
+pub use install::{install, get_git_commit_hash};
 pub use git::git_install;
 pub use list::list;
 pub use info::info;

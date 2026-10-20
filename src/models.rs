@@ -10,6 +10,8 @@ pub struct Record {
     pub links: Vec<ManagedLink>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub git_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_commit_hash: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]

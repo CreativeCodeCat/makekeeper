@@ -185,6 +185,9 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
     // Store the URL as-is (don't convert)
     let git_url = git_url_arg.or_else(|| detect_git_url(&project));
 
+    // Get the current commit hash if this is a git repository
+    let commit_hash = get_git_commit_hash(&project);
+
     let mut record = Record {
         name: name.clone(),
         source: project.to_string_lossy().into_owned(),
@@ -193,6 +196,7 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
         files: Vec::new(),
         links: Vec::new(),
         git_url,
+        last_commit_hash: commit_hash.clone(),
     };
 
     // Copy staged entries, recording hashes and symlink targets.
@@ -400,6 +404,30 @@ fn detect_git_url(project: &Path) -> Option<String> {
         let url = url.trim();
         if !url.is_empty() {
             return Some(url.to_string());
+        }
+    }
+
+    None
+}
+
+pub fn get_git_commit_hash(project: &Path) -> Option<String> {
+    let git_dir = project.join(".git");
+    if !git_dir.exists() {
+        return None;
+    }
+
+    // Try to get the current commit hash
+    let output = Command::new("git")
+        .current_dir(project)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        let hash_str = String::from_utf8(output.stdout).ok()?;
+        let hash_str = hash_str.trim();
+        if !hash_str.is_empty() {
+            return Some(hash_str.to_string());
         }
     }
 

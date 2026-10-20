@@ -1,11 +1,15 @@
 use anyhow::{Context, Result};
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use crate::registry::get_all_records;
 use crate::utils::{confirm, root_required, try_clone_with_fallback};
+
+fn get_cache_dir() -> PathBuf {
+    Path::new("/var/lib/makekeeper").join("cache")
+}
 
 pub fn update(yes: bool, verbose: bool) -> Result<()> {
     root_required()?;
@@ -35,6 +39,7 @@ pub fn update(yes: bool, verbose: bool) -> Result<()> {
     let mut updated = Vec::new();
 
     let sudo_user = std::env::var("SUDO_USER").ok();
+    let ssh_auth_sock = std::env::var("SSH_AUTH_SOCK").ok();
 
     for record in updatable {
         let git_url = record.git_url.as_ref().unwrap();
@@ -69,7 +74,8 @@ pub fn update(yes: bool, verbose: bool) -> Result<()> {
         // Drop privileges to the original user for git clone to access SSH keys
         if let Some(ref user) = sudo_user {
             // Running under sudo - drop to original user for git clone
-            let status = Command::new("sudo")
+            let mut clone_cmd = Command::new("sudo");
+            clone_cmd
                 .arg("-u")
                 .arg(user)
                 .arg("git")
@@ -79,7 +85,76 @@ pub fn update(yes: bool, verbose: bool) -> Result<()> {
                 .arg(&temp_dir)
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
-                .status();
+                .env("HOME", format!("/home/{}", user));
+
+            if let Some(ref sock) = ssh_auth_sock {
+                clone_cmd.env("SSH_AUTH_SOCK", sock);
+            }
+
+            let status = clone_cmd.status();
+
+            match status {
+                Ok(s) if s.success() => {},
+                Ok(_) => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    eprintln!("Failed to clone repository for {}", name);
+                    failed.push(name.clone());
+                    continue;
+                }
+                Err(e) => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    eprintln!("Failed to clone repository for {}: {}", name, e);
+                    failed.push(name.clone());
+                    continue;
+                }
+            }
+        } else {
+            // Not running under sudo - use fallback logic
+            if let Err(e) = try_clone_with_fallback(&temp_dir, git_url) {
+                let _ = fs::remove_dir_all(&temp_dir);
+                eprintln!("Failed to clone repository for {}: {}", name, e);
+                failed.push(name.clone());
+                continue;
+            }
+        }
+
+        // Check the hash of the cloned repository
+        let cloned_hash = crate::commands::get_git_commit_hash(&temp_dir);
+
+        let has_update = match (&record.last_commit_hash, cloned_hash) {
+            (Some(last_hash), Some(new_hash)) => *last_hash != new_hash,
+            (None, _) => true, // No previous hash, always update
+            (_, None) => true, // Could not get new hash, proceed with update
+        };
+
+        if !has_update {
+            println!("{} is already up to date", name);
+            let _ = fs::remove_dir_all(&temp_dir);
+            continue;
+        }
+
+        // Clone the repository with SSH->HTTPS fallback
+        // Drop privileges to the original user for git clone to access SSH keys
+        if let Some(ref user) = sudo_user {
+            // Running under sudo - drop to original user for git clone
+            let mut clone_cmd = Command::new("sudo");
+            clone_cmd
+                .arg("-u")
+                .arg(user)
+                .arg("git")
+                .arg("clone")
+                .arg("--quiet")
+                .arg(git_url)
+                .arg(&temp_dir)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .env("HOME", format!("/home/{}", user));
+
+            if let Some(ref sock) = ssh_auth_sock {
+                clone_cmd.env("SSH_AUTH_SOCK", sock);
+            }
+
+            let status = clone_cmd.status();
 
             match status {
                 Ok(s) if s.success() => {},

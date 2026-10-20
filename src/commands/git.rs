@@ -43,9 +43,11 @@ pub fn git_install(url: String, name: Option<String>, yes: bool, override_: bool
 
     // Clone the repository with SSH->HTTPS fallback
     // Drop privileges to the original user for git clone to access SSH keys
+    let ssh_auth_sock = std::env::var("SSH_AUTH_SOCK").ok();
     if let Some(ref user) = sudo_user {
         // Running under sudo - drop to original user for git clone
-        let status = Command::new("sudo")
+        let mut clone_cmd = Command::new("sudo");
+        clone_cmd
             .arg("-u")
             .arg(user)
             .arg("git")
@@ -55,6 +57,13 @@ pub fn git_install(url: String, name: Option<String>, yes: bool, override_: bool
             .arg(&temp_dir)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
+            .env("HOME", format!("/home/{}", user));
+
+        if let Some(ref sock) = ssh_auth_sock {
+            clone_cmd.env("SSH_AUTH_SOCK", sock);
+        }
+
+        let status = clone_cmd
             .status()
             .context("failed to clone repository")?;
 
