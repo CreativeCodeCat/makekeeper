@@ -136,7 +136,6 @@ jobs:
   release:
     needs: [build-arch, build-ubuntu, build-fedora]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
 
