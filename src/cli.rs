@@ -58,4 +58,6 @@ pub enum Action {
         #[arg(long, help = "Show detailed update output")]
         verbose: bool,
     },
+    /// Show count of installed packages and git-tracked packages.
+    Fetch,
 }

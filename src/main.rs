@@ -9,7 +9,7 @@ mod registry;
 mod utils;
 
 use cli::{Cli, Action};
-use commands::{inspect, install, git_install, list, info, uninstall, update};
+use commands::{inspect, install, git_install, list, info, uninstall, update, fetch};
 
 fn main() {
     if let Err(e) = run() {
@@ -27,5 +27,6 @@ fn run() -> Result<()> {
         Action::Info { name } => info(&name),
         Action::Uninstall { name, yes, verbose } => uninstall(&name, yes, verbose),
         Action::Update { yes, verbose } => update(yes, verbose),
+        Action::Fetch => fetch(),
     }
 }
