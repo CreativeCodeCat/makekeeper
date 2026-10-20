@@ -8,6 +8,8 @@ pub struct Record {
     pub installed_at: u64,
     pub files: Vec<InstalledFile>,
     pub links: Vec<ManagedLink>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub git_url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]

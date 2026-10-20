@@ -50,6 +50,33 @@ pub fn save_record(record: &Record) -> Result<()> {
     Ok(())
 }
 
+pub fn get_all_records() -> Result<Vec<Record>> {
+    let mut records = Vec::new();
+
+    if !Path::new(REGISTRY).exists() {
+        return Ok(records);
+    }
+
+    for entry in std::fs::read_dir(REGISTRY)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.extension().and_then(|s| s.to_str()) != Some("json") {
+            continue;
+        }
+
+        let name = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .ok_or_else(|| anyhow::anyhow!("invalid record filename"))?;
+
+        let record = load_record(name)?;
+        records.push(record);
+    }
+
+    Ok(records)
+}
+
 pub fn rollback_files(files: &[InstalledFile]) {
     for file in files.iter().rev() {
         let path = Path::new(&file.path);

@@ -51,4 +51,11 @@ pub enum Action {
         #[arg(long, help = "Show detailed removal output")]
         verbose: bool,
     },
+    /// Update all installed applications that have git repositories.
+    Update {
+        #[arg(long, help = "Skip confirmation prompt")]
+        yes: bool,
+        #[arg(long, help = "Show detailed update output")]
+        verbose: bool,
+    },
 }

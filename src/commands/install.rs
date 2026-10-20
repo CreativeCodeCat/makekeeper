@@ -11,7 +11,7 @@ use crate::registry::{record_path, rollback_files, rollback_links, save_record};
 use crate::utils::{confirm, hash_file, now, project_dir, root_required, valid_name};
 use crate::commands::uninstall;
 
-pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override_: bool, verbose: bool) -> Result<()> {
+pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override_: bool, verbose: bool, git_url_arg: Option<String>) -> Result<()> {
     root_required()?;
     let project = project_dir(project_arg)?;
     let default_name = project
@@ -180,6 +180,11 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
         }
     }
 
+    // Detect if this is a git repository and extract the remote URL
+    // Use the provided git_url if available, otherwise detect it
+    // Store the URL as-is (don't convert)
+    let git_url = git_url_arg.or_else(|| detect_git_url(&project));
+
     let mut record = Record {
         name: name.clone(),
         source: project.to_string_lossy().into_owned(),
@@ -187,6 +192,7 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
         installed_at: now(),
         files: Vec::new(),
         links: Vec::new(),
+        git_url,
     };
 
     // Copy staged entries, recording hashes and symlink targets.
@@ -374,4 +380,28 @@ fn stage_install(project: &Path, prefix: &Path, stage: &Path) -> Result<()> {
         bail!("make install failed");
     }
     Ok(())
+}
+
+fn detect_git_url(project: &Path) -> Option<String> {
+    let git_dir = project.join(".git");
+    if !git_dir.exists() {
+        return None;
+    }
+
+    // Try to get the remote URL from git config
+    let output = Command::new("git")
+        .current_dir(project)
+        .args(["config", "--get", "remote.origin.url"])
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        let url = String::from_utf8(output.stdout).ok()?;
+        let url = url.trim();
+        if !url.is_empty() {
+            return Some(url.to_string());
+        }
+    }
+
+    None
 }
