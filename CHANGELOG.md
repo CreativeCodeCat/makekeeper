@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
-## [0.1.0](https://github.com/CodeWorksCreativeHub/mLauncher/tree/0.1.0) - (20, October 2026)
+## [v0.1.0](https://github.com/CodeWorksCreativeHub/mLauncher/tree/v0.1.0) - (20, October 2026)
 
 ### :bug: Bug Fixes:
 
