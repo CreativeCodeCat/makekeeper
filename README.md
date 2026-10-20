@@ -52,6 +52,31 @@ Or skip confirmation with `--yes`:
 sudo makekeeper install /path/to/project --yes
 ```
 
+### Install from a git repository
+
+```bash
+sudo makekeeper git <git-url>
+```
+
+This will:
+1. Clone the repository to a temporary directory
+2. Build and install the project using the same process as `install`
+3. Clean up the cloned directory after installation
+
+Note: This command requires root privileges (sudo).
+
+You can specify a custom name:
+
+```bash
+sudo makekeeper git <git-url> --name myapp
+```
+
+Or skip confirmation with `--yes`:
+
+```bash
+sudo makekeeper git <git-url> --yes
+```
+
 ### Inspect a project
 
 Preview what will be installed without actually installing:

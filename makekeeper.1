@@ -19,11 +19,11 @@ and executable symlinks are created in
 .SH COMMANDS
 
 .TP
-.B inspect PROJECT
+.B inspect [PROJECT]
 Inspect a project's Makefile and preview installation commands. This shows possible Make targets and a dry-run preview of the installation without actually installing.
 
 .TP
-.B install PROJECT [OPTIONS]
+.B install [PROJECT] [OPTIONS]
 Build and install a project. The project is built using
 .BR make ,
 staged to a temporary directory, checked for conflicts, and then installed.
@@ -31,8 +31,26 @@ staged to a temporary directory, checked for conflicts, and then installed.
 .RS
 .RS
 .TP
-.B \-\-name NAME
+.B \-\-name [NAME]
 Specify a custom application name. Defaults to the project directory name.
+
+.TP
+.B \-\-yes
+Skip the confirmation prompt.
+.RE
+.RE
+
+.TP
+.B git [URL] [OPTIONS]
+Clone a git repository and install it. This command requires root privileges. The repository is cloned to a temporary directory, then installed using the same process as
+.BR install .
+The cloned directory is cleaned up after installation.
+
+.RS
+.RS
+.TP
+.B \-\-name [NAME]
+Specify a custom application name. Defaults to the repository name.
 
 .TP
 .B \-\-yes
@@ -45,11 +63,11 @@ Skip the confirmation prompt.
 List all registered applications with file and symlink counts.
 
 .TP
-.B info NAME
+.B info [NAME]
 Display detailed information about an installed application, including source, prefix, installed files, and managed symlinks.
 
 .TP
-.B uninstall NAME [OPTIONS]
+.B uninstall [NAME] [OPTIONS]
 Remove tracked files and managed executable symlinks. Only unchanged files are removed; modified files are preserved for manual review.
 
 .RS
@@ -85,6 +103,14 @@ Install with a custom name:
 .PP
 .nf
 sudo makekeeper install /path/to/project --name myapp
+.fi
+.RE
+
+Install from a git repository:
+.RS
+.PP
+.nf
+sudo makekeeper git https://github.com/user/project
 .fi
 .RE
 

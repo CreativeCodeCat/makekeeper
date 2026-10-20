@@ -22,6 +22,16 @@ pub enum Action {
         name: Option<String>,
         #[arg(long, help = "Skip confirmation prompt")]
         yes: bool,
+        #[arg(long, help = "Override existing installation")]
+        override_: bool,
+    },
+    /// Clone a git repository and install it.
+    Git {
+        url: String,
+        #[arg(long)]
+        name: Option<String>,
+        #[arg(long, help = "Skip confirmation prompt")]
+        yes: bool,
     },
     /// List registered applications.
     List,
