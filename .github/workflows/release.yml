@@ -26,14 +26,10 @@ jobs:
     
     - name: Create .pkg.tar.zst
       run: |
-        mkdir -p releases/pkg/usr/local/bin
-        mkdir -p releases/pkg/usr/local/share/man/man1
-        install -m 755 target/release/makekeeper releases/pkg/usr/local/bin/makekeeper
-        install -m 644 makekeeper.1 releases/pkg/usr/local/share/man/man1/makekeeper.1
-        tar cf releases/makekeeper-0.1.0-x86_64.pkg.tar -C releases/pkg .
-        zstd -19 -f releases/makekeeper-0.1.0-x86_64.pkg.tar
-        rm -f releases/makekeeper-0.1.0-x86_64.pkg.tar
-        rm -rf releases/pkg
+        sudo pacman -Sy --needed --noconfirm base-devel rust cargo git
+        makepkg --clean --force --nodeps
+        mkdir -p releases
+        cp makekeeper-0.1.0-1-x86_64.pkg.tar.zst releases/
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
