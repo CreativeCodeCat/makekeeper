@@ -163,31 +163,62 @@ async function generateChangelog() {
 	let changelog = HEADER;
 
 	// Unreleased
-	const latestTag = tags[0] || "unreleased";
-	const rawUnreleased = run(`git log ${latestTag}..HEAD --pretty=format:"%h|%s"`).split("\n");
+	if (tags.length > 0) {
+		const latestTag = tags[0];
+		const rawUnreleased = run(`git log ${latestTag}..HEAD --pretty=format:"%h|%s"`).split("\n");
 
-	const unreleasedCommits = rawUnreleased
-		.map((line) => {
-			const [hash, ...msgParts] = line.split("|");
-			const message = msgParts.join("|");
-			const classified = classifyCommit(message);
-			if (!classified) return null;
-			return { ...classified, hash };
-		})
-		.filter(Boolean);
+		const unreleasedCommits = rawUnreleased
+			.map((line) => {
+				const [hash, ...msgParts] = line.split("|");
+				const message = msgParts.join("|");
+				const classified = classifyCommit(message);
+				if (!classified) return null;
+				return { ...classified, hash };
+			})
+			.filter(Boolean);
 
-	if (unreleasedCommits.length > 0) {
-		changelog += `## [${latestTag} → Unreleased](${REPO_URL}/tree/main) - In Development\n\n`;
+		if (unreleasedCommits.length > 0) {
+			changelog += `## [${latestTag} → Unreleased](${REPO_URL}/tree/main) - In Development\n\n`;
 
-		const groups = {};
-		for (const c of unreleasedCommits) {
-			groups[c.group] = groups[c.group] || [];
-			groups[c.group].push(`* ${linkPR(cleanMessage(c.message))} ([${c.hash}](${REPO_URL}/commit/${c.hash}))`);
+			const groups = {};
+			for (const c of unreleasedCommits) {
+				groups[c.group] = groups[c.group] || [];
+				groups[c.group].push(`* ${linkPR(cleanMessage(c.message))} ([${c.hash}](${REPO_URL}/commit/${c.hash}))`);
+			}
+
+			for (const group of GROUP_ORDER) {
+				if (groups[group]) {
+					changelog += `${group}\n\n${groups[group].join("\n")}\n\n`;
+				}
+			}
 		}
+	} else {
+		// No tags yet, show all commits
+		const rawCommits = run("git log --pretty=format:\"%h|%s\"").split("\n");
 
-		for (const group of GROUP_ORDER) {
-			if (groups[group]) {
-				changelog += `${group}\n\n${groups[group].join("\n")}\n\n`;
+		const commits = rawCommits
+			.map((line) => {
+				const [hash, ...msgParts] = line.split("|");
+				const message = msgParts.join("|");
+				const classified = classifyCommit(message);
+				if (!classified) return null;
+				return { ...classified, hash };
+			})
+			.filter(Boolean);
+
+		if (commits.length > 0) {
+			changelog += `## [Unreleased](${REPO_URL}/tree/main) - In Development\n\n`;
+
+			const groups = {};
+			for (const c of commits) {
+				groups[c.group] = groups[c.group] || [];
+				groups[c.group].push(`* ${linkPR(cleanMessage(c.message))} ([${c.hash}](${REPO_URL}/commit/${c.hash}))`);
+			}
+
+			for (const group of GROUP_ORDER) {
+				if (groups[group]) {
+					changelog += `${group}\n\n${groups[group].join("\n")}\n\n`;
+				}
 			}
 		}
 	}
