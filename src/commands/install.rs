@@ -11,16 +11,19 @@ use crate::registry::{record_path, rollback_files, rollback_links, save_record};
 use crate::utils::{confirm, hash_file, now, project_dir, root_required, valid_name};
 use crate::commands::uninstall;
 
-pub fn install(project_arg: &Path, name: Option<String>, yes: bool, override_: bool, verbose: bool) -> Result<()> {
+pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override_: bool, verbose: bool) -> Result<()> {
     root_required()?;
     let project = project_dir(project_arg)?;
-    let name = name.unwrap_or_else(|| {
-        project
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string()
-    });
+    let default_name = project
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let custom_name_provided = name_arg.is_some();
+    let name = match name_arg {
+        Some(n) => n,
+        None => default_name,
+    };
 
     if !valid_name(&name) {
         bail!("invalid application name");
@@ -126,7 +129,13 @@ pub fn install(project_arg: &Path, name: Option<String>, yes: bool, override_: b
         let Some(filename) = source.file_name() else {
             continue;
         };
-        let link = Path::new(BIN_DIR).join(filename);
+        // Use custom name if provided, otherwise use original filename
+        let link_name = if custom_name_provided {
+            name.clone()
+        } else {
+            filename.to_string_lossy().into_owned()
+        };
+        let link = Path::new(BIN_DIR).join(link_name);
 
         if fs::symlink_metadata(&link).is_ok() {
             eprintln!("warning: {} will be overwritten", link.display());
@@ -157,7 +166,14 @@ pub fn install(project_arg: &Path, name: Option<String>, yes: bool, override_: b
         };
 
         let man_section_str = format!("man{}", man_section.unwrap());
-        let link = Path::new(MAN_DIR).join(&man_section_str).join(filename);
+        // Use custom name if provided, otherwise use original filename
+        let link_name = if custom_name_provided {
+            let ext = Path::new(filename).extension().and_then(|s| s.to_str()).unwrap_or("1");
+            format!("{}.{}", name, ext)
+        } else {
+            filename.to_string_lossy().into_owned()
+        };
+        let link = Path::new(MAN_DIR).join(&man_section_str).join(link_name);
 
         if fs::symlink_metadata(&link).is_ok() {
             eprintln!("warning: {} will be overwritten", link.display());
@@ -242,7 +258,13 @@ pub fn install(project_arg: &Path, name: Option<String>, yes: bool, override_: b
         let Some(filename) = target.file_name() else {
             continue;
         };
-        let link = Path::new(BIN_DIR).join(filename);
+        // Use custom name if provided, otherwise use original filename
+        let link_name = if custom_name_provided {
+            name.clone()
+        } else {
+            filename.to_string_lossy().into_owned()
+        };
+        let link = Path::new(BIN_DIR).join(link_name);
 
         // Remove existing symlink if it exists
         if fs::symlink_metadata(&link).is_ok() {
@@ -287,7 +309,15 @@ pub fn install(project_arg: &Path, name: Option<String>, yes: bool, override_: b
 
         // Build the link path: /usr/share/man/manN/filename
         let man_section_str = format!("man{}", man_section.unwrap());
-        let link = Path::new(MAN_DIR).join(&man_section_str).join(filename);
+        // Use custom name if provided, otherwise use original filename
+        let link_name = if custom_name_provided {
+            // Replace the base name with the custom name, preserving the extension
+            let ext = Path::new(filename).extension().and_then(|s| s.to_str()).unwrap_or("1");
+            format!("{}.{}", name, ext)
+        } else {
+            filename.to_string_lossy().into_owned()
+        };
+        let link = Path::new(MAN_DIR).join(&man_section_str).join(link_name);
 
         // Remove existing symlink if it exists
         if fs::symlink_metadata(&link).is_ok() {
