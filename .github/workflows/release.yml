@@ -30,7 +30,9 @@ jobs:
         mkdir -p releases/pkg/usr/local/share/man/man1
         install -m 755 target/release/makekeeper releases/pkg/usr/local/bin/makekeeper
         install -m 644 makekeeper.1 releases/pkg/usr/local/share/man/man1/makekeeper.1
-        cd releases/pkg && tar caf ../makekeeper-0.1.0-x86_64.pkg.tar.zst --zstd -19 .
+        cd releases/pkg && tar cf ../makekeeper-0.1.0-x86_64.pkg.tar .
+        zstd -19 -f ../makekeeper-0.1.0-x86_64.pkg.tar
+        mv ../makekeeper-0.1.0-x86_64.pkg.tar.zst releases/
         rm -rf releases/pkg
     
     - name: Upload artifact
