@@ -27,12 +27,10 @@ jobs:
     - name: Create .pkg.tar.zst
       run: |
         useradd -m builder
-        mkdir -p /tmp/makekeeper-build
-        cp -r $GITHUB_WORKSPACE/* /tmp/makekeeper-build/
-        chown -R builder:builder /tmp/makekeeper-build
-        cd /tmp/makekeeper-build
+        chown -R builder:builder $GITHUB_WORKSPACE
+        cd $GITHUB_WORKSPACE
         su builder -c "makepkg --noconfirm --skipchecksums"
-        cp *.pkg.tar.zst $GITHUB_WORKSPACE/releases/
+        cp *.pkg.tar.zst releases/
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
