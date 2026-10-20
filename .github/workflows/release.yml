@@ -7,44 +7,16 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - os: archlinux
-            package: pkg
-            runner: ubuntu-latest
-            container: archlinux/archlinux:latest
-          - os: ubuntu
-            package: deb
-            runner: ubuntu-latest
-          - os: fedora
-            package: rpm
-            runner: ubuntu-latest
-            container: fedora:latest
-    
-    runs-on: ${{ matrix.runner }}
-    container: ${{ matrix.container }}
+  build-arch:
+    runs-on: ubuntu-latest
+    container: archlinux/archlinux:latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Install Rust (Arch)
-      if: matrix.os == 'archlinux'
+    - name: Install Rust
       run: pacman -Sy --noconfirm rust base-devel binutils
-    
-    - name: Install Rust (Ubuntu)
-      if: matrix.os == 'ubuntu'
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-    
-    - name: Install Rust (Fedora)
-      if: matrix.os == 'fedora'
-      run: dnf install -y rust cargo && dnf groupinstall -y "Development Tools"
     
     - name: Build release
       run: cargo build --release
@@ -52,17 +24,43 @@ jobs:
     - name: Create releases directory
       run: mkdir -p releases
     
-    - name: Create .pkg.tar.gz (Arch)
-      if: matrix.package == 'pkg'
+    - name: Create .pkg.tar.zst
       run: |
+        useradd -m builder
         mkdir -p /tmp/makekeeper-build
         cp -r $GITHUB_WORKSPACE/* /tmp/makekeeper-build/
+        chown -R builder:builder /tmp/makekeeper-build
         cd /tmp/makekeeper-build
-        makepkg -s --noconfirm
+        su builder -c "makepkg -s --noconfirm"
         cp *.pkg.tar.zst $GITHUB_WORKSPACE/releases/
     
-    - name: Create .deb (Ubuntu)
-      if: matrix.package == 'deb'
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: arch-package
+        path: releases/*.pkg.tar.zst
+
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    
+    - name: Build release
+      run: cargo build --release
+    
+    - name: Create releases directory
+      run: mkdir -p releases
+    
+    - name: Create .deb
       run: |
         mkdir -p releases/deb/DEBIAN
         mkdir -p releases/deb/usr/local/bin
@@ -82,8 +80,30 @@ jobs:
         dpkg-deb -b releases/deb releases/makekeeper_0.1.0_amd64.deb
         rm -rf releases/deb
     
-    - name: Create .rpm (Fedora)
-      if: matrix.package == 'rpm'
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ubuntu-package
+        path: releases/*.deb
+
+  build-fedora:
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install Rust
+      run: dnf install -y rust cargo && dnf groupinstall -y "Development Tools"
+    
+    - name: Build release
+      run: cargo build --release
+    
+    - name: Create releases directory
+      run: mkdir -p releases
+    
+    - name: Create .rpm
       run: |
         mkdir -p releases/rpmroot/usr/local/bin
         mkdir -p releases/rpmroot/usr/local/share/man/man1
@@ -110,14 +130,11 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.package }}-package
-        path: |
-          releases/*.deb
-          releases/*.rpm
-          releases/*.pkg.tar.zst
+        name: fedora-package
+        path: releases/*.rpm
   
   release:
-    needs: build
+    needs: [build-arch, build-ubuntu, build-fedora]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     
