@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :wrench: Code Quality:
 
+* Refactor release workflow to streamline package creation process ([30c701d](https://github.com/CodeWorksCreativeHub/mLauncher/commit/30c701d))
 * Refactor changelog generation to handle commits without tags ([5321bc1](https://github.com/CodeWorksCreativeHub/mLauncher/commit/5321bc1))
 * Refactor release workflow to improve package creation process ([41717c8](https://github.com/CodeWorksCreativeHub/mLauncher/commit/41717c8))
 * Refactor release workflow to simplify package build process ([255384b](https://github.com/CodeWorksCreativeHub/mLauncher/commit/255384b))
