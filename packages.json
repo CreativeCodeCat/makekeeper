@@ -1,0 +1,124 @@
+{
+  "packages": [
+    {
+      "name": "neofetch",
+      "url": "https://github.com/dylanaraps/neofetch.git",
+      "description": "A command-line system information tool",
+      "category": "system"
+    },
+    {
+      "name": "lf",
+      "url": "https://github.com/gokcehan/lf.git",
+      "description": "Terminal file manager",
+      "category": "file-manager"
+    },
+    {
+      "name": "st",
+      "url": "https://git.suckless.org/st",
+      "description": "Simple terminal for X",
+      "category": "terminal"
+    },
+    {
+      "name": "dwm",
+      "url": "https://git.suckless.org/dwm",
+      "description": "Dynamic window manager for X",
+      "category": "window-manager"
+    },
+    {
+      "name": "slstatus",
+      "url": "https://git.suckless.org/slstatus",
+      "description": "Status monitor for window managers",
+      "category": "system"
+    },
+    {
+      "name": "cava",
+      "url": "https://github.com/karlstav/cava.git",
+      "description": "Console Audio Visualizer",
+      "category": "audio"
+    },
+    {
+      "name": "slock",
+      "url": "https://git.suckless.org/slock",
+      "description": "Simple X screen locker",
+      "category": "system"
+    },
+    {
+      "name": "dmenu",
+      "url": "https://git.suckless.org/dmenu",
+      "description": "Dynamic menu for X",
+      "category": "menu"
+    },
+    {
+      "name": "tabbed",
+      "url": "https://git.suckless.org/tabbed",
+      "description": "Generic tabbed interface",
+      "category": "utility"
+    },
+    {
+      "name": "nsxiv",
+      "url": "https://git.codeforge.work/nsxiv/nsxiv.git",
+      "description": "Simple X image viewer",
+      "category": "image"
+    },
+    {
+      "name": "mpv",
+      "url": "https://github.com/mpv-player/mpv.git",
+      "description": "Media player",
+      "category": "media"
+    },
+    {
+      "name": "youtube-dl",
+      "url": "https://github.com/ytdl-org/youtube-dl.git",
+      "description": "Video downloader",
+      "category": "media"
+    },
+    {
+      "name": "ripgrep",
+      "url": "https://github.com/BurntSushi/ripgrep.git",
+      "description": "Fast line-oriented search tool",
+      "category": "utility"
+    },
+    {
+      "name": "fd",
+      "url": "https://github.com/sharkdp/fd.git",
+      "description": "Fast file finder",
+      "category": "utility"
+    },
+    {
+      "name": "bat",
+      "url": "https://github.com/sharkdp/bat.git",
+      "description": "Cat clone with syntax highlighting",
+      "category": "utility"
+    },
+    {
+      "name": "exa",
+      "url": "https://github.com/ogham/exa.git",
+      "description": "Modern replacement for ls",
+      "category": "utility"
+    },
+    {
+      "name": "tokei",
+      "url": "https://github.com/XAMPPRocky/tokei.git",
+      "description": "Code statistics tool",
+      "category": "utility"
+    },
+    {
+      "name": "bottom",
+      "url": "https://github.com/ClementTsang/bottom.git",
+      "description": "Cross-platform graphical process viewer",
+      "category": "system"
+    },
+    {
+      "name": "duf",
+      "url": "https://github.com/muesli/duf.git",
+      "description": "Disk usage utility",
+      "category": "system"
+    },
+    {
+      "name": "broot",
+      "url": "https://github.com/Canop/broot.git",
+      "description": "Fuzzy file finder and tree view",
+      "category": "file-manager"
+    }
+  ]
+}
