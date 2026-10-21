@@ -48,6 +48,7 @@ set(SOURCES
     src/commands/search.cpp
     src/commands/sync.cpp
     src/commands/gui.cpp
+    src/commands/fetch.cpp
 )
 
 set(HEADERS
@@ -62,6 +63,7 @@ set(HEADERS
     src/commands/search.h
     src/commands/sync.h
     src/commands/gui.h
+    src/commands/fetch.h
 )
 
 # Create executable

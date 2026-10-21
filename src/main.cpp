@@ -7,6 +7,7 @@
 #include "commands/search.h"
 #include "commands/sync.h"
 #include "commands/gui.h"
+#include "commands/fetch.h"
 
 int main(int argc, char* argv[]) {
     makekeeper::cli::CLI& app = makekeeper::cli::CLI::instance();
@@ -19,6 +20,7 @@ int main(int argc, char* argv[]) {
     app.register_command({"search", "Search packages", makekeeper::commands::search});
     app.register_command({"sync", "Sync package catalog", makekeeper::commands::sync});
     app.register_command({"gui", "Launch GUI", makekeeper::commands::gui});
+    app.register_command({"fetch", "Show package statistics", makekeeper::commands::fetch});
 
     return app.run(argc, argv);
 }

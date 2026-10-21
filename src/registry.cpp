@@ -18,8 +18,8 @@ Registry& Registry::instance() {
 bool Registry::load() {
     std::ifstream file(config::REGISTRY_FILE);
     if (!file.is_open()) {
-        // Create registry directory if it doesn't exist
-        fs::create_directories(config::REGISTRY_DIR);
+        // Registry doesn't exist yet, that's ok
+        records_.clear();
         return true;
     }
 

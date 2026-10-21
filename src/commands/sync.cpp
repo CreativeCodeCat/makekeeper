@@ -22,10 +22,16 @@ struct Package {
 
 int sync(const std::vector<std::string>& args) {
     // Ensure cache directory exists with privilege
-    if (!utils::is_root()) {
-        utils::exec_command_with_privilege("mkdir", {"-p", config::CACHE_DIR});
-    } else {
-        utils::ensure_directory(std::string(config::CACHE_DIR));
+    if (!fs::exists(config::CACHE_DIR)) {
+        if (!utils::is_root()) {
+            utils::exec_command_with_privilege("mkdir", {"-p", config::CACHE_DIR});
+        }
+    }
+    // Also ensure registry directory exists
+    if (!fs::exists(config::REGISTRY_DIR)) {
+        if (!utils::is_root()) {
+            utils::exec_command_with_privilege("mkdir", {"-p", config::REGISTRY_DIR});
+        }
     }
 
     std::cout << "Downloading package catalog..." << std::endl;

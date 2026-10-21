@@ -1,0 +1,48 @@
+#include "fetch.h"
+#include "../registry.h"
+#include "../config.h"
+#include <iostream>
+#include <iomanip>
+
+namespace makekeeper {
+namespace commands {
+
+int fetch(const std::vector<std::string>& args) {
+    // Load registry
+    auto& registry = registry::Registry::instance();
+    if (!registry.load()) {
+        std::cout << "0/0 (makekeeper)" << std::endl;
+        return 0;
+    }
+
+    auto records = registry.list();
+
+    // Filter out records with empty names
+    std::vector<registry::Record> valid_records;
+    for (const auto& record : records) {
+        if (!record.name.empty()) {
+            valid_records.push_back(record);
+        }
+    }
+
+    if (valid_records.empty()) {
+        std::cout << "0/0 (makekeeper)" << std::endl;
+        return 0;
+    }
+
+    int total_installed = valid_records.size();
+    int git_repos = 0;
+
+    for (const auto& record : valid_records) {
+        if (!record.url.empty()) {
+            git_repos++;
+        }
+    }
+
+    std::cout << total_installed << "/" << git_repos << " (makekeeper)" << std::endl;
+
+    return 0;
+}
+
+} // namespace commands
+} // namespace makekeeper

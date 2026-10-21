@@ -107,12 +107,23 @@ int install(const std::vector<std::string>& args) {
         return 1;
     }
 
-    // Build
-    std::cout << "Building..." << std::endl;
-    int result = utils::exec_command_with_privilege("make", {"-C", source_dir});
-    if (result != 0) {
-        std::cerr << "Error: Build failed." << std::endl;
-        return 1;
+    // Check if already built (check for common build artifacts)
+    bool already_built = false;
+    if (fs::exists(source_dir + "/build") || fs::exists(source_dir + "/target") || fs::exists(source_dir + "/bin")) {
+        already_built = true;
+    }
+
+    // Build only if not already built
+    int result;
+    if (!already_built) {
+        std::cout << "Building..." << std::endl;
+        result = utils::exec_command_with_privilege("make", {"-C", source_dir});
+        if (result != 0) {
+            std::cerr << "Error: Build failed." << std::endl;
+            return 1;
+        }
+    } else {
+        std::cout << "Already built, skipping..." << std::endl;
     }
 
     // Install
