@@ -74,10 +74,15 @@ void PackagesView::setup_ui() {
         "QTableWidget::item { padding: 4px; border: none; }"
         "QTableWidget::item:selected { background-color: #2a82da; color: #ffffff; }"
         "QHeaderView::section { background-color: #252525; color: #888888; padding: 6px 8px; border: none; border-bottom: 1px solid #353535; font-weight: bold; font-size: 11px; }"
+        "QHeaderView::section::indicator { width: 0px; border: none; background: none; }"
+        "QHeaderView::up-arrow, QHeaderView::down-arrow { width: 0px; height: 0px; border: none; background: none; image: none; }"
     );
     package_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
     package_table_->setSelectionMode(QAbstractItemView::SingleSelection);
     package_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    package_table_->setSortingEnabled(true);
+    package_table_->sortByColumn(0, Qt::AscendingOrder);
+    package_table_->horizontalHeader()->setSectionsClickable(false);
     QObject::connect(package_table_, &QTableWidget::itemSelectionChanged, [this]() {
         on_package_selected();
     });
@@ -128,6 +133,9 @@ void PackagesView::setup_ui() {
 }
 
 void PackagesView::load_packages() {
+    // Disable sorting while loading
+    package_table_->setSortingEnabled(false);
+    
     // Load installed packages
     auto& registry = registry::Registry::instance();
     registry.load();
@@ -181,6 +189,10 @@ void PackagesView::load_packages() {
         package_table_->item(i, 0)->setData(Qt::UserRole, description);
         package_table_->item(i, 0)->setData(Qt::UserRole + 1, url);
     }
+    
+    // Re-enable sorting and sort by name
+    package_table_->setSortingEnabled(true);
+    package_table_->sortByColumn(0, Qt::AscendingOrder);
 }
 
 void PackagesView::on_search_changed(const QString& text) {
