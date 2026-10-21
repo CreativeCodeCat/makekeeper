@@ -17,7 +17,15 @@ int list(const std::vector<std::string>& args) {
 
     auto records = registry.list();
 
-    if (records.empty()) {
+    // Filter out records with empty names
+    std::vector<registry::Record> valid_records;
+    for (const auto& record : records) {
+        if (!record.name.empty()) {
+            valid_records.push_back(record);
+        }
+    }
+
+    if (valid_records.empty()) {
         std::cout << "No packages installed." << std::endl;
         return 0;
     }
@@ -25,7 +33,7 @@ int list(const std::vector<std::string>& args) {
     std::cout << "Installed packages:" << std::endl;
     std::cout << std::endl;
 
-    for (const auto& record : records) {
+    for (const auto& record : valid_records) {
         std::cout << "  " << record.name << std::endl;
         std::cout << "    URL: " << (record.url.empty() ? "N/A" : record.url) << std::endl;
         std::cout << "    Installed: " << record.install_date << std::endl;

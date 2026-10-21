@@ -70,12 +70,26 @@ int install(const std::vector<std::string>& args) {
         source_dir = fs::absolute(source).string();
         if (name.empty()) {
             name = fs::path(source_dir).filename().string();
+            // Handle "." or empty directory name
+            if (name == "." || name.empty()) {
+                // Use parent directory name
+                name = fs::path(source_dir).parent_path().filename().string();
+                if (name.empty() || name == ".") {
+                    name = "makekeeper";  // Final fallback
+                }
+            }
         }
     }
 
     // Check if already installed
     if (registry.exists(name)) {
         std::cerr << "Error: " << name << " is already installed." << std::endl;
+        return 1;
+    }
+
+    // Don't install with empty name
+    if (name.empty()) {
+        std::cerr << "Error: Could not determine package name. Use --name to specify." << std::endl;
         return 1;
     }
 
