@@ -1,5 +1,6 @@
 #include "registry.h"
 #include "config.h"
+#include "utils.h"
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <filesystem>
@@ -46,7 +47,9 @@ bool Registry::load() {
 }
 
 bool Registry::save() {
-    std::ofstream file(config::REGISTRY_FILE);
+    // Save to temp file first
+    std::string temp_file = "/tmp/registry.json.tmp";
+    std::ofstream file(temp_file);
     if (!file.is_open()) {
         return false;
     }
@@ -68,7 +71,26 @@ bool Registry::save() {
         }
 
         file << j.dump(2);
-        return true;
+        file.close();
+
+        // Move to final location with privilege if not root
+        if (!makekeeper::utils::is_root()) {
+            // Ensure registry directory exists
+            makekeeper::utils::exec_command_with_privilege("mkdir", {"-p", config::REGISTRY_DIR});
+            
+            // Move file with pkexec
+            int result = makekeeper::utils::exec_command_with_privilege("mv", {temp_file, config::REGISTRY_FILE});
+            return result == 0;
+        } else {
+            try {
+                fs::rename(temp_file, config::REGISTRY_FILE);
+            } catch (const fs::filesystem_error& e) {
+                // Cross-device link error, use copy + remove
+                fs::copy_file(temp_file, config::REGISTRY_FILE, fs::copy_options::overwrite_existing);
+                fs::remove(temp_file);
+            }
+            return true;
+        }
     } catch (const std::exception& e) {
         return false;
     }

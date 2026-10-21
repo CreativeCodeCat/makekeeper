@@ -179,10 +179,39 @@ int install(const std::vector<std::string>& args) {
     // Clone if URL (run as user for SSH keys)
     if (!url.empty()) {
         std::cout << "Cloning repository..." << std::endl;
-        int result = utils::exec_command_exit_code("git", {"clone", url, source_dir});
+        
+        // Clone to temp location first (user-accessible)
+        std::string temp_dir = "/tmp/makekeeper-" + name;
+        
+        // Remove temp dir if it exists
+        if (fs::exists(temp_dir)) {
+            fs::remove_all(temp_dir);
+        }
+        
+        int result = utils::exec_command_exit_code("git", {"clone", url, temp_dir});
         if (result != 0) {
             std::cerr << "Error: Failed to clone repository." << std::endl;
             return 1;
+        }
+        
+        // Ensure cache directory exists with privilege
+        if (!fs::exists(config::CACHE_DIR)) {
+            if (!utils::is_root()) {
+                utils::exec_command_with_privilege("mkdir", {"-p", config::CACHE_DIR});
+            }
+        }
+        
+        // Move to final location with privilege
+        if (!utils::is_root()) {
+            utils::exec_command_with_privilege("mv", {temp_dir, source_dir});
+        } else {
+            try {
+                fs::rename(temp_dir, source_dir);
+            } catch (const fs::filesystem_error& e) {
+                // Cross-device link error, use copy + remove
+                utils::exec_command("cp", {"-r", temp_dir, source_dir});
+                fs::remove_all(temp_dir);
+            }
         }
     }
 
@@ -254,41 +283,29 @@ int install(const std::vector<std::string>& args) {
     record.commit_hash = commit_hash;
     record.install_date = utils::get_timestamp();
 
-    // Track installed files from common locations
+    // Track installed files from common locations (add regardless, install succeeded)
     std::string binary_path = std::string(config::BIN_DIR) + "/" + name;
-    if (fs::exists(binary_path)) {
-        record.files.push_back(binary_path);
-        record.symlinks.push_back(binary_path);
-    }
+    record.files.push_back(binary_path);
+    record.symlinks.push_back(binary_path);
 
-    // Track manpage if it exists
+    // Track manpage
     std::string manpage_path = std::string(config::MAN_DIR) + "/" + name + ".1";
-    if (fs::exists(manpage_path)) {
-        record.files.push_back(manpage_path);
-    }
+    record.files.push_back(manpage_path);
 
-    // Track fish completion if it exists
+    // Track fish completion
     std::string fish_comp_path = "/usr/share/fish/vendor_completions.d/" + name + ".fish";
-    if (fs::exists(fish_comp_path)) {
-        record.files.push_back(fish_comp_path);
-    }
+    record.files.push_back(fish_comp_path);
 
-    // Track desktop file if it exists
+    // Track desktop file
     std::string desktop_path = std::string(config::DESKTOP_DIR) + "/" + name + ".desktop";
-    if (fs::exists(desktop_path)) {
-        record.files.push_back(desktop_path);
-    }
+    record.files.push_back(desktop_path);
 
-    // Track icons if they exist
+    // Track icons
     std::string icon_png = std::string(config::ICON_DIR) + "/" + name + "-128.png";
-    if (fs::exists(icon_png)) {
-        record.files.push_back(icon_png);
-    }
+    record.files.push_back(icon_png);
 
     std::string icon_svg = std::string(config::ICON_SVG_DIR) + "/" + name + ".svg";
-    if (fs::exists(icon_svg)) {
-        record.files.push_back(icon_svg);
-    }
+    record.files.push_back(icon_svg);
 
     registry.add(record);
 

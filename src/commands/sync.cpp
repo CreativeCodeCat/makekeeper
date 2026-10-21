@@ -108,11 +108,22 @@ int sync(const std::vector<std::string>& args) {
     output << j.dump(2);
     output.close();
 
-    // Move to final location with privilege
-    if (!utils::is_root()) {
-        utils::exec_command_with_privilege("mv", {temp_file, config::CACHE_FILE});
-    } else {
+    // Ensure cache directory exists
+    if (!fs::exists(config::CACHE_DIR)) {
+        if (!utils::is_root()) {
+            utils::exec_command_with_privilege("mkdir", {"-p", config::CACHE_DIR});
+        } else {
+            fs::create_directories(config::CACHE_DIR);
+        }
+    }
+
+    // Move to final location (use cp + rm to handle cross-device moves)
+    try {
         fs::rename(temp_file, config::CACHE_FILE);
+    } catch (const fs::filesystem_error& e) {
+        // Cross-device link error, use copy + remove
+        fs::copy_file(temp_file, config::CACHE_FILE, fs::copy_options::overwrite_existing);
+        fs::remove(temp_file);
     }
 
     std::cout << "✓ Package catalog updated to version " << remote_version << std::endl;

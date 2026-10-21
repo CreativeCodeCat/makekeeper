@@ -53,6 +53,7 @@ set(SOURCES
     src/commands/sync.cpp
     src/commands/fetch.cpp
     src/commands/gui.cpp
+    src/commands/info.cpp
     src/gui/gui.cpp
     src/gui/window.cpp
     src/gui/views/base.cpp
