@@ -1,6 +1,12 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "packages": [
+    {
+      "name": "makekeeper",
+      "url": "https://github.com/CreativeCodeCat/makekeeper",
+      "description": "Safer installer for Makefile-based Linux applications",
+      "category": "system"
+    },
     {
       "name": "neofetch",
       "url": "https://github.com/dylanaraps/neofetch.git",
