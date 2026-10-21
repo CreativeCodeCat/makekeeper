@@ -5,6 +5,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Find required packages
@@ -47,8 +51,16 @@ set(SOURCES
     src/commands/list.cpp
     src/commands/search.cpp
     src/commands/sync.cpp
-    src/commands/gui.cpp
     src/commands/fetch.cpp
+    src/commands/gui.cpp
+    src/gui/gui.cpp
+    src/gui/window.cpp
+    src/gui/views/base.cpp
+    src/gui/views/overview.cpp
+    src/gui/views/packages.cpp
+    src/gui/views/updates.cpp
+    src/gui/views/registry.cpp
+    src/gui/views/settings.cpp
 )
 
 set(HEADERS
@@ -62,8 +74,9 @@ set(HEADERS
     src/commands/list.h
     src/commands/search.h
     src/commands/sync.h
-    src/commands/gui.h
     src/commands/fetch.h
+    src/gui/gui.h
+    src/gui/window.h
 )
 
 # Create executable

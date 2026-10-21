@@ -1,0 +1,30 @@
+#include "settings.h"
+#include <QVBoxLayout>
+#include <QLabel>
+
+namespace makekeeper {
+namespace gui {
+namespace views {
+
+SettingsView::SettingsView(QWidget* parent) : BaseView(parent) {
+    QVBoxLayout* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(20, 20, 20, 20);
+    
+    QLabel* title = new QLabel("Settings", this);
+    title->setStyleSheet("font-size: 24px; font-weight: bold; color: #ffffff;");
+    layout->addWidget(title);
+    
+    QLabel* content = new QLabel("Settings view is under construction.", this);
+    content->setStyleSheet("color: #888888; font-size: 14px;");
+    layout->addWidget(content);
+    
+    layout->addStretch();
+}
+
+void SettingsView::refresh() {
+    // Refresh settings data
+}
+
+} // namespace views
+} // namespace gui
+} // namespace makekeeper

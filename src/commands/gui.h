@@ -7,7 +7,7 @@
 namespace makekeeper {
 namespace commands {
 
-int gui(const std::vector<std::string>& args);
+int gui(const std::vector<std::string> &args);
 
 } // namespace commands
 } // namespace makekeeper
