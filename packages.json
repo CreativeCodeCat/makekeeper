@@ -1,5 +1,5 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "packages": [
     {
       "name": "neofetch",
@@ -15,19 +15,19 @@
     },
     {
       "name": "st",
-      "url": "git://git.suckless.org/st",
+      "url": "https://git.suckless.org/st",
       "description": "Simple terminal for X",
       "category": "terminal"
     },
     {
       "name": "dwm",
-      "url": "git://git.suckless.org/dwm",
+      "url": "https://git.suckless.org/dwm",
       "description": "Dynamic window manager for X",
       "category": "window-manager"
     },
     {
       "name": "slstatus",
-      "url": "git://git.suckless.org/slstatus",
+      "url": "https://git.suckless.org/slstatus",
       "description": "Status monitor for window managers",
       "category": "system"
     },
@@ -39,19 +39,19 @@
     },
     {
       "name": "slock",
-      "url": "git://git.suckless.org/slock",
+      "url": "https://git.suckless.org/slock",
       "description": "Simple X screen locker",
       "category": "system"
     },
     {
       "name": "dmenu",
-      "url": "git://git.suckless.org/dmenu",
+      "url": "https://git.suckless.org/dmenu",
       "description": "Dynamic menu for X",
       "category": "menu"
     },
     {
       "name": "tabbed",
-      "url": "git://git.suckless.org/tabbed",
+      "url": "https://git.suckless.org/tabbed",
       "description": "Generic tabbed interface",
       "category": "utility"
     },
