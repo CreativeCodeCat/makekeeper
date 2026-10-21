@@ -2,44 +2,44 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
-## [v0.1.0 → Unreleased](https://github.com/CodeWorksCreativeHub/mLauncher/tree/main) - In Development
+## [v0.1.0 → Unreleased](https://github.com/CreativeCodeCat/makekeeper/tree/main) - In Development
 
 ### :wrench: Code Quality:
 
-* Refactor root permission handling and simplify git commands ([8fa9805](https://github.com/CodeWorksCreativeHub/mLauncher/commit/8fa9805))
-* Refactor git installation and update commands to use a shared cache directory ([42b8985](https://github.com/CodeWorksCreativeHub/mLauncher/commit/42b8985))
-* Refactor install command to support custom application names ([5531e4d](https://github.com/CodeWorksCreativeHub/mLauncher/commit/5531e4d))
+* Refactor root permission handling and simplify git commands ([8fa9805](https://github.com/CreativeCodeCat/makekeeper/commit/8fa9805))
+* Refactor git installation and update commands to use a shared cache directory ([42b8985](https://github.com/CreativeCodeCat/makekeeper/commit/42b8985))
+* Refactor install command to support custom application names ([5531e4d](https://github.com/CreativeCodeCat/makekeeper/commit/5531e4d))
 
-## [v0.1.0](https://github.com/CodeWorksCreativeHub/mLauncher/tree/v0.1.0) - (20, October 2026)
+## [0.1.0 - MakeKeeper](https://github.com/CreativeCodeCat/makekeeper/tree/v0.1.0) - (20, October 2026)
 
 ### :bug: Bug Fixes:
 
-* Fix GitHub Actions workflow to use environment variable for workspace path ([5e6e056](https://github.com/CodeWorksCreativeHub/mLauncher/commit/5e6e056))
+* Fix GitHub Actions workflow to use environment variable for workspace path ([5e6e056](https://github.com/CreativeCodeCat/makekeeper/commit/5e6e056))
 
 ### :wrench: Code Quality:
 
-* Refactor RPM creation step in release workflow ([80df5b9](https://github.com/CodeWorksCreativeHub/mLauncher/commit/80df5b9))
-* Refactor release workflow to streamline RPM packaging process ([54e7917](https://github.com/CodeWorksCreativeHub/mLauncher/commit/54e7917))
-* Refactor Fedora build steps in release workflow ([0f279e9](https://github.com/CodeWorksCreativeHub/mLauncher/commit/0f279e9))
-* Refactor Fedora build steps in release workflow ([c94e27c](https://github.com/CodeWorksCreativeHub/mLauncher/commit/c94e27c))
-* Refactor release workflow for improved package creation ([3e199e1](https://github.com/CodeWorksCreativeHub/mLauncher/commit/3e199e1))
-* Refactor release workflow to streamline package creation process ([30c701d](https://github.com/CodeWorksCreativeHub/mLauncher/commit/30c701d))
-* Refactor changelog generation to handle commits without tags ([5321bc1](https://github.com/CodeWorksCreativeHub/mLauncher/commit/5321bc1))
-* Refactor release workflow to improve package creation process ([41717c8](https://github.com/CodeWorksCreativeHub/mLauncher/commit/41717c8))
-* Refactor release workflow to simplify package build process ([255384b](https://github.com/CodeWorksCreativeHub/mLauncher/commit/255384b))
-* Refactor PKGBUILD to streamline build process ([3e69eb6](https://github.com/CodeWorksCreativeHub/mLauncher/commit/3e69eb6))
-* Refactor GitHub Actions workflow for multi-platform builds ([3a2564b](https://github.com/CodeWorksCreativeHub/mLauncher/commit/3a2564b))
-* Refactor Makefile and update GitHub Actions workflow for package creation ([06f3a1f](https://github.com/CodeWorksCreativeHub/mLauncher/commit/06f3a1f))
-* Refactor installation logic to improve override handling ([46e5419](https://github.com/CodeWorksCreativeHub/mLauncher/commit/46e5419))
-* Refactor main.rs to modularize code and improve structure ([9a95805](https://github.com/CodeWorksCreativeHub/mLauncher/commit/9a95805))
+* Refactor RPM creation step in release workflow ([80df5b9](https://github.com/CreativeCodeCat/makekeeper/commit/80df5b9))
+* Refactor release workflow to streamline RPM packaging process ([54e7917](https://github.com/CreativeCodeCat/makekeeper/commit/54e7917))
+* Refactor Fedora build steps in release workflow ([0f279e9](https://github.com/CreativeCodeCat/makekeeper/commit/0f279e9))
+* Refactor Fedora build steps in release workflow ([c94e27c](https://github.com/CreativeCodeCat/makekeeper/commit/c94e27c))
+* Refactor release workflow for improved package creation ([3e199e1](https://github.com/CreativeCodeCat/makekeeper/commit/3e199e1))
+* Refactor release workflow to streamline package creation process ([30c701d](https://github.com/CreativeCodeCat/makekeeper/commit/30c701d))
+* Refactor changelog generation to handle commits without tags ([5321bc1](https://github.com/CreativeCodeCat/makekeeper/commit/5321bc1))
+* Refactor release workflow to improve package creation process ([41717c8](https://github.com/CreativeCodeCat/makekeeper/commit/41717c8))
+* Refactor release workflow to simplify package build process ([255384b](https://github.com/CreativeCodeCat/makekeeper/commit/255384b))
+* Refactor PKGBUILD to streamline build process ([3e69eb6](https://github.com/CreativeCodeCat/makekeeper/commit/3e69eb6))
+* Refactor GitHub Actions workflow for multi-platform builds ([3a2564b](https://github.com/CreativeCodeCat/makekeeper/commit/3a2564b))
+* Refactor Makefile and update GitHub Actions workflow for package creation ([06f3a1f](https://github.com/CreativeCodeCat/makekeeper/commit/06f3a1f))
+* Refactor installation logic to improve override handling ([46e5419](https://github.com/CreativeCodeCat/makekeeper/commit/46e5419))
+* Refactor main.rs to modularize code and improve structure ([9a95805](https://github.com/CreativeCodeCat/makekeeper/commit/9a95805))
 
 ### :x: Feature Removals:
 
-* Remove conditional check for tag-based releases in the GitHub Actions workflow ([2a4fe1d](https://github.com/CodeWorksCreativeHub/mLauncher/commit/2a4fe1d))
+* Remove conditional check for tag-based releases in the GitHub Actions workflow ([2a4fe1d](https://github.com/CreativeCodeCat/makekeeper/commit/2a4fe1d))
 
 ### :broom: Maintenance & Cleanup:
 
-* Add release packages ([f5e835b](https://github.com/CodeWorksCreativeHub/mLauncher/commit/f5e835b))
+* Add release packages ([f5e835b](https://github.com/CreativeCodeCat/makekeeper/commit/f5e835b))
 
 ---
 > Generated by CreativeCodeCat
