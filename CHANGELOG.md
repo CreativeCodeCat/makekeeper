@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :wrench: Code Quality:
 
+* Refactor root permission handling and simplify git commands ([8fa9805](https://github.com/CodeWorksCreativeHub/mLauncher/commit/8fa9805))
 * Refactor git installation and update commands to use a shared cache directory ([42b8985](https://github.com/CodeWorksCreativeHub/mLauncher/commit/42b8985))
 * Refactor install command to support custom application names ([5531e4d](https://github.com/CodeWorksCreativeHub/mLauncher/commit/5531e4d))
 
