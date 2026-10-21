@@ -37,25 +37,10 @@ pub fn update(yes: bool, verbose: bool) -> Result<()> {
     let mut failed = Vec::new();
     let mut updated = Vec::new();
 
-    let sudo_user = std::env::var("SUDO_USER").ok();
-    let ssh_auth_sock = std::env::var("SSH_AUTH_SOCK").ok();
-
     // Create cache directory
     let cache_dir = get_cache_dir();
-    if let Some(ref user) = sudo_user {
-        // Create as the user to avoid permission issues
-        Command::new("sudo")
-            .arg("-u")
-            .arg(user)
-            .arg("mkdir")
-            .arg("-p")
-            .arg(&cache_dir)
-            .status()
-            .context("failed to create cache directory")?;
-    } else {
-        fs::create_dir_all(&cache_dir)
-            .context("failed to create cache directory")?;
-    }
+    fs::create_dir_all(&cache_dir)
+        .context("failed to create cache directory")?;
 
     for record in updatable {
         let git_url = record.git_url.as_ref().unwrap();
@@ -75,102 +60,33 @@ pub fn update(yes: bool, verbose: bool) -> Result<()> {
         // Clone or fetch the repository
         if repo_cache_dir.exists() {
             // Repository already cached, do a fetch
-            if let Some(ref user) = sudo_user {
-                let mut fetch_cmd = Command::new("sudo");
-                fetch_cmd
-                    .arg("-u")
-                    .arg(user)
-                    .arg("git")
-                    .arg("fetch")
-                    .arg("--quiet")
-                    .current_dir(&repo_cache_dir)
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null())
-                    .env("HOME", format!("/home/{}", user));
+            let status = Command::new("git")
+                .arg("fetch")
+                .arg("--quiet")
+                .current_dir(&repo_cache_dir)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status();
 
-                if let Some(ref sock) = ssh_auth_sock {
-                    fetch_cmd.env("SSH_AUTH_SOCK", sock);
+            match status {
+                Ok(s) if s.success() => {},
+                Ok(_) => {
+                    eprintln!("Failed to fetch repository for {}", name);
+                    failed.push(name.clone());
+                    continue;
                 }
-
-                let status = fetch_cmd.status();
-
-                match status {
-                    Ok(s) if s.success() => {},
-                    Ok(_) => {
-                        eprintln!("Failed to fetch repository for {}", name);
-                        failed.push(name.clone());
-                        continue;
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to fetch repository for {}: {}", name, e);
-                        failed.push(name.clone());
-                        continue;
-                    }
-                }
-            } else {
-                let status = Command::new("git")
-                    .arg("fetch")
-                    .arg("--quiet")
-                    .current_dir(&repo_cache_dir)
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null())
-                    .status();
-
-                match status {
-                    Ok(s) if s.success() => {},
-                    Ok(_) => {
-                        eprintln!("Failed to fetch repository for {}", name);
-                        failed.push(name.clone());
-                        continue;
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to fetch repository for {}: {}", name, e);
-                        failed.push(name.clone());
-                        continue;
-                    }
+                Err(e) => {
+                    eprintln!("Failed to fetch repository for {}: {}", name, e);
+                    failed.push(name.clone());
+                    continue;
                 }
             }
         } else {
             // Not cached, do a fresh clone
-            if let Some(ref user) = sudo_user {
-                let mut clone_cmd = Command::new("sudo");
-                clone_cmd
-                    .arg("-u")
-                    .arg(user)
-                    .arg("git")
-                    .arg("clone")
-                    .arg("--quiet")
-                    .arg(git_url)
-                    .arg(&repo_cache_dir)
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null())
-                    .env("HOME", format!("/home/{}", user));
-
-                if let Some(ref sock) = ssh_auth_sock {
-                    clone_cmd.env("SSH_AUTH_SOCK", sock);
-                }
-
-                let status = clone_cmd.status();
-
-                match status {
-                    Ok(s) if s.success() => {},
-                    Ok(_) => {
-                        eprintln!("Failed to clone repository for {}", name);
-                        failed.push(name.clone());
-                        continue;
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to clone repository for {}: {}", name, e);
-                        failed.push(name.clone());
-                        continue;
-                    }
-                }
-            } else {
-                if let Err(e) = try_clone_with_fallback(&repo_cache_dir, git_url) {
-                    eprintln!("Failed to clone repository for {}: {}", name, e);
-                    failed.push(name.clone());
-                    continue;
-                }
+            if let Err(e) = try_clone_with_fallback(&repo_cache_dir, git_url) {
+                eprintln!("Failed to clone repository for {}: {}", name, e);
+                failed.push(name.clone());
+                continue;
             }
         }
 

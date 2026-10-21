@@ -3,15 +3,57 @@ use sha2::{Digest, Sha256};
 use std::{
     fs::File,
     io::{Read, Write},
-    path::Path,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
     time::{SystemTime, UNIX_EPOCH},
 };
 
 pub fn root_required() -> Result<()> {
+    // Check if we've already re-exec'd to avoid loops
+    if std::env::var("MAKEKEEPER_PKEXEC").is_ok() {
+        return Ok(());
+    }
+
     let out = Command::new("id").arg("-u").output()?;
     if !String::from_utf8_lossy(&out.stdout).trim().eq("0") {
-        bail!("system-wide operation requires root; run this command with sudo");
+        // Re-exec with pkexec, preserving current directory
+        let args: Vec<String> = std::env::args().collect();
+        let current_dir = std::env::current_dir()
+            .context("failed to get current directory")?;
+
+        // Convert relative paths to absolute in args
+        // Skip the subcommand (index 1) and flags (starting with -)
+        let absolute_args: Vec<String> = args
+            .iter()
+            .enumerate()
+            .map(|(i, arg)| {
+                // Skip converting: the program name (index 0), subcommand (index 1), and flags
+                if i <= 1 || arg.starts_with('-') {
+                    arg.clone()
+                } else if arg.starts_with("./") || arg.starts_with("../") {
+                    // Convert relative path to absolute
+                    let path = PathBuf::from(arg);
+                    current_dir.join(path).to_string_lossy().to_string()
+                } else {
+                    // Check if it's an existing path (not a name)
+                    let path = PathBuf::from(arg);
+                    if path.is_relative() && path.exists() {
+                        current_dir.join(path).to_string_lossy().to_string()
+                    } else {
+                        arg.clone()
+                    }
+                }
+            })
+            .collect();
+
+        let status = Command::new("pkexec")
+            .args(&absolute_args)
+            .current_dir(current_dir)
+            .env("MAKEKEEPER_PKEXEC", "1")
+            .status()
+            .context("failed to re-exec with pkexec")?;
+
+        std::process::exit(status.code().unwrap_or(1));
     }
     Ok(())
 }
@@ -25,7 +67,7 @@ pub fn valid_name(s: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || "._-".contains(c))
 }
 
-pub fn project_dir(path: &Path) -> Result<std::path::PathBuf> {
+pub fn project_dir(path: &Path) -> Result<PathBuf> {
     let p = std::fs::canonicalize(path)?;
     if !p.is_dir() {
         bail!("project path is not a directory");

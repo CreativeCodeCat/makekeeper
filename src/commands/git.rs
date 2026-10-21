@@ -20,25 +20,10 @@ pub fn git_install(url: String, name: Option<String>, yes: bool, override_: bool
         bail!("git is not installed or not available in PATH");
     }
 
-    let sudo_user = std::env::var("SUDO_USER").ok();
-    let ssh_auth_sock = std::env::var("SSH_AUTH_SOCK").ok();
-
     // Create cache directory
     let cache_dir = get_cache_dir();
-    if let Some(ref user) = sudo_user {
-        // Create as the user to avoid permission issues
-        Command::new("sudo")
-            .arg("-u")
-            .arg(user)
-            .arg("mkdir")
-            .arg("-p")
-            .arg(&cache_dir)
-            .status()
-            .context("failed to create cache directory")?;
-    } else {
-        fs::create_dir_all(&cache_dir)
-            .context("failed to create cache directory")?;
-    }
+    fs::create_dir_all(&cache_dir)
+        .context("failed to create cache directory")?;
 
     // Create a cache directory for this repo
     // Use a sanitized version of the git URL as the cache name
@@ -52,74 +37,21 @@ pub fn git_install(url: String, name: Option<String>, yes: bool, override_: bool
     // Clone or fetch the repository
     if repo_cache_dir.exists() {
         // Repository already cached, do a fetch
-        if let Some(ref user) = sudo_user {
-            let mut fetch_cmd = Command::new("sudo");
-            fetch_cmd
-                .arg("-u")
-                .arg(user)
-                .arg("git")
-                .arg("fetch")
-                .arg("--quiet")
-                .current_dir(&repo_cache_dir)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .env("HOME", format!("/home/{}", user));
+        let status = Command::new("git")
+            .arg("fetch")
+            .arg("--quiet")
+            .current_dir(&repo_cache_dir)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .context("failed to fetch repository")?;
 
-            if let Some(ref sock) = ssh_auth_sock {
-                fetch_cmd.env("SSH_AUTH_SOCK", sock);
-            }
-
-            let status = fetch_cmd
-                .status()
-                .context("failed to fetch repository")?;
-
-            if !status.success() {
-                bail!("failed to fetch repository");
-            }
-        } else {
-            let status = Command::new("git")
-                .arg("fetch")
-                .arg("--quiet")
-                .current_dir(&repo_cache_dir)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
-                .context("failed to fetch repository")?;
-
-            if !status.success() {
-                bail!("failed to fetch repository");
-            }
+        if !status.success() {
+            bail!("failed to fetch repository");
         }
     } else {
         // Not cached, do a fresh clone
-        if let Some(ref user) = sudo_user {
-            let mut clone_cmd = Command::new("sudo");
-            clone_cmd
-                .arg("-u")
-                .arg(user)
-                .arg("git")
-                .arg("clone")
-                .arg("--quiet")
-                .arg(&url)
-                .arg(&repo_cache_dir)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .env("HOME", format!("/home/{}", user));
-
-            if let Some(ref sock) = ssh_auth_sock {
-                clone_cmd.env("SSH_AUTH_SOCK", sock);
-            }
-
-            let status = clone_cmd
-                .status()
-                .context("failed to clone repository")?;
-
-            if !status.success() {
-                bail!("failed to clone repository");
-            }
-        } else {
-            try_clone_with_fallback(&repo_cache_dir, &url)?;
-        }
+        try_clone_with_fallback(&repo_cache_dir, &url)?;
     }
 
     // Reset to origin/HEAD to get the latest commit
