@@ -108,6 +108,12 @@ int install(const std::vector<std::string>& args) {
                 }
             }
         }
+        
+        // Check if already installed after determining name from directory
+        if (registry.exists(name) && !override) {
+            std::cerr << "Error: " << name << " is already installed. Use --override to reinstall." << std::endl;
+            return 1;
+        }
     } else {
         // It's a package name - look up in catalog
         std::ifstream catalog_file(config::CACHE_FILE);
