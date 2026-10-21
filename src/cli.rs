@@ -60,4 +60,6 @@ pub enum Action {
     },
     /// Show count of installed packages and git-tracked packages.
     Fetch,
+    /// Sync package list from remote repository.
+    Sync,
 }
