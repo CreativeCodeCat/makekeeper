@@ -17,6 +17,9 @@ std::string exec_command(const std::string& command);
 // Execute command with args
 std::string exec_command(const std::string& command, const std::vector<std::string>& args);
 
+// Execute command and return exit code
+int exec_command_exit_code(const std::string& command, const std::vector<std::string>& args = {});
+
 // Execute command with pkexec if not root
 int exec_command_with_privilege(const std::string& command, const std::vector<std::string>& args = {});
 

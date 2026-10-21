@@ -56,8 +56,21 @@ void CLI::print_help() const {
     std::cout << std::endl;
     std::cout << "Commands:" << std::endl;
 
+    // Find max command name length for alignment
+    size_t max_name_length = 0;
     for (const auto& command : commands_) {
-        std::cout << "  " << command.name << "    " << command.description << std::endl;
+        if (command.name.length() > max_name_length) {
+            max_name_length = command.name.length();
+        }
+    }
+
+    for (const auto& command : commands_) {
+        std::cout << "  " << command.name;
+        // Pad with spaces to align descriptions
+        for (size_t i = command.name.length(); i < max_name_length + 4; i++) {
+            std::cout << " ";
+        }
+        std::cout << command.description << std::endl;
     }
 
     std::cout << std::endl;

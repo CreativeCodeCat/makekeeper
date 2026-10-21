@@ -11,6 +11,15 @@ namespace makekeeper {
 namespace commands {
 
 int uninstall(const std::vector<std::string>& args) {
+    // Check for help flag
+    if (!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
+        std::cout << "Usage: makekeeper uninstall <NAME>" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Arguments:" << std::endl;
+        std::cout << "  NAME    Package name to uninstall" << std::endl;
+        return 0;
+    }
+
     if (args.empty()) {
         std::cerr << "Usage: makekeeper uninstall <NAME>" << std::endl;
         return 1;

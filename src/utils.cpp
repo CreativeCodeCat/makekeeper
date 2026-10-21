@@ -72,6 +72,36 @@ std::string exec_command(const std::string& command, const std::vector<std::stri
     return result;
 }
 
+int exec_command_exit_code(const std::string& command, const std::vector<std::string>& args) {
+    std::vector<char*> argv;
+    argv.push_back(const_cast<char*>(command.c_str()));
+    for (const auto& arg : args) {
+        argv.push_back(const_cast<char*>(arg.c_str()));
+    }
+    argv.push_back(nullptr);
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        return -1;
+    }
+
+    if (pid == 0) {
+        // Child process
+        execvp(command.c_str(), argv.data());
+        _exit(127);
+    }
+
+    // Parent process
+    int status;
+    waitpid(pid, &status, 0);
+
+    if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+    } else {
+        return -1;
+    }
+}
+
 int exec_command_with_privilege(const std::string& command, const std::vector<std::string>& args) {
     std::vector<char*> argv;
     

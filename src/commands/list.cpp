@@ -8,6 +8,14 @@ namespace makekeeper {
 namespace commands {
 
 int list(const std::vector<std::string>& args) {
+    // Check for help flag
+    if (!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
+        std::cout << "Usage: makekeeper list" << std::endl;
+        std::cout << std::endl;
+        std::cout << "List all installed packages with their details." << std::endl;
+        return 0;
+    }
+
     // Load registry
     auto& registry = registry::Registry::instance();
     if (!registry.load()) {

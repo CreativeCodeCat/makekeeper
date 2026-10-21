@@ -11,6 +11,15 @@ namespace makekeeper {
 namespace commands {
 
 int update(const std::vector<std::string>& args) {
+    // Check for help flag
+    if (!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
+        std::cout << "Usage: makekeeper update [NAME]" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Arguments:" << std::endl;
+        std::cout << "  NAME    Package name to update (optional, updates all if not specified)" << std::endl;
+        return 0;
+    }
+
     // Load registry
     auto& registry = registry::Registry::instance();
     if (!registry.load()) {
@@ -42,8 +51,8 @@ int update(const std::vector<std::string>& args) {
 
             std::cout << "Updating " << record.name << "..." << std::endl;
 
-            // Fetch changes
-            int result = utils::exec_command_with_privilege("git", {"-C", record.source_dir, "fetch"});
+            // Fetch changes (run as user for SSH keys)
+            int result = utils::exec_command_exit_code("git", {"-C", record.source_dir, "fetch"});
             if (result != 0) {
                 std::cerr << "  Error: Failed to fetch updates." << std::endl;
                 continue;
@@ -59,8 +68,8 @@ int update(const std::vector<std::string>& args) {
                 continue;
             }
 
-            // Pull changes
-            result = utils::exec_command_with_privilege("git", {"-C", record.source_dir, "pull"});
+            // Pull changes (run as user for SSH keys)
+            result = utils::exec_command_exit_code("git", {"-C", record.source_dir, "pull"});
             if (result != 0) {
                 std::cerr << "  Error: Failed to pull updates." << std::endl;
                 continue;
@@ -125,8 +134,8 @@ int update(const std::vector<std::string>& args) {
 
     std::cout << "Updating " << name << "..." << std::endl;
 
-    // Fetch changes
-    int result = utils::exec_command_with_privilege("git", {"-C", record->source_dir, "fetch"});
+    // Fetch changes (run as user for SSH keys)
+    int result = utils::exec_command_exit_code("git", {"-C", record->source_dir, "fetch"});
     if (result != 0) {
         std::cerr << "Error: Failed to fetch updates." << std::endl;
         return 1;
@@ -141,8 +150,8 @@ int update(const std::vector<std::string>& args) {
         return 0;
     }
 
-    // Pull changes
-    result = utils::exec_command_with_privilege("git", {"-C", record->source_dir, "pull"});
+    // Pull changes (run as user for SSH keys)
+    result = utils::exec_command_exit_code("git", {"-C", record->source_dir, "pull"});
     if (result != 0) {
         std::cerr << "Error: Failed to pull updates." << std::endl;
         return 1;

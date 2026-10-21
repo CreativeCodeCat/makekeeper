@@ -8,6 +8,14 @@ namespace makekeeper {
 namespace commands {
 
 int fetch(const std::vector<std::string>& args) {
+    // Check for help flag
+    if (!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
+        std::cout << "Usage: makekeeper fetch" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Show package statistics: total installed / packages with Git repositories." << std::endl;
+        return 0;
+    }
+
     // Load registry
     auto& registry = registry::Registry::instance();
     if (!registry.load()) {

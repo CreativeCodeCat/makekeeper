@@ -20,6 +20,17 @@ struct Package {
 };
 
 int search(const std::vector<std::string>& args) {
+    // Check for help flag
+    if (!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
+        std::cout << "Usage: makekeeper search <QUERY>" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Arguments:" << std::endl;
+        std::cout << "  QUERY    Search term to find packages" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Searches through package names and descriptions." << std::endl;
+        return 0;
+    }
+
     if (args.empty()) {
         std::cerr << "Usage: makekeeper search <QUERY>" << std::endl;
         return 1;

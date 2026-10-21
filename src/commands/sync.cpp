@@ -21,6 +21,14 @@ struct Package {
 };
 
 int sync(const std::vector<std::string>& args) {
+    // Check for help flag
+    if (!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
+        std::cout << "Usage: makekeeper sync" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Download and sync the package catalog from the remote repository." << std::endl;
+        return 0;
+    }
+
     // Ensure cache directory exists with privilege
     if (!fs::exists(config::CACHE_DIR)) {
         if (!utils::is_root()) {

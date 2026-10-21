@@ -5,6 +5,9 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 namespace fs = std::filesystem;
 
@@ -12,6 +15,20 @@ namespace makekeeper {
 namespace commands {
 
 int install(const std::vector<std::string>& args) {
+    // Check for help flag
+    if (!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
+        std::cout << "Usage: makekeeper install <NAME|URL> [--name NAME] [--dir DIR] [--override]" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Arguments:" << std::endl;
+        std::cout << "  NAME|URL    Package name, Git URL, or local directory" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Options:" << std::endl;
+        std::cout << "  --name NAME    Specify custom package name" << std::endl;
+        std::cout << "  --dir DIR      Specify source directory" << std::endl;
+        std::cout << "  --override     Reinstall if already installed" << std::endl;
+        return 0;
+    }
+
     if (args.empty()) {
         std::cerr << "Usage: makekeeper install <NAME|URL> [--name NAME] [--dir DIR] [--override]" << std::endl;
         return 1;
@@ -42,7 +59,22 @@ int install(const std::vector<std::string>& args) {
         return 1;
     }
 
-    // Determine if source is a URL or directory
+    // Early check: if name is provided and already installed without --override, fail early
+    if (!name.empty() && registry.exists(name) && !override) {
+        std::cerr << "Error: " << name << " is already installed. Use --override to reinstall." << std::endl;
+        return 1;
+    }
+
+    // Early check: if source is a package name (not URL or dir) and already installed
+    bool is_url = (source.find("://") != std::string::npos || source.find("git@") == 0);
+    bool is_dir = fs::exists(source);
+    
+    if (!is_url && !is_dir && registry.exists(source) && !override) {
+        std::cerr << "Error: " << source << " is already installed. Use --override to reinstall." << std::endl;
+        return 1;
+    }
+
+    // Determine if source is a URL, directory, or package name
     std::string url;
     std::string source_dir;
 
@@ -62,7 +94,7 @@ int install(const std::vector<std::string>& args) {
             }
         }
         source_dir = std::string(config::CACHE_DIR) + "/" + name;
-    } else {
+    } else if (fs::exists(source)) {
         // It's a directory
         source_dir = fs::absolute(source).string();
         if (name.empty()) {
@@ -76,34 +108,63 @@ int install(const std::vector<std::string>& args) {
                 }
             }
         }
+    } else {
+        // It's a package name - look up in catalog
+        std::ifstream catalog_file(config::CACHE_FILE);
+        if (catalog_file.is_open()) {
+            try {
+                nlohmann::json j;
+                catalog_file >> j;
+                
+                if (j.contains("packages")) {
+                    for (const auto& item : j["packages"]) {
+                        if (item["name"] == source) {
+                            url = item["url"];
+                            if (name.empty()) {
+                                name = source;
+                            }
+                            source_dir = std::string(config::CACHE_DIR) + "/" + name;
+                            std::cout << "Found package in catalog: " << name << std::endl;
+                            break;
+                        }
+                    }
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "Warning: Failed to parse catalog, treating as directory path" << std::endl;
+            }
+        }
+        
+        // If not found in catalog, report error
+        if (url.empty()) {
+            std::cerr << "Error: Package '" << source << "' not found in catalog." << std::endl;
+            std::cerr << "Run 'makekeeper sync' to update the catalog, or provide a URL or directory path." << std::endl;
+            return 1;
+        }
     }
 
-    // Check if already installed
+    // Check if already installed with --override (after name is determined)
     if (registry.exists(name)) {
         if (override) {
             std::cout << name << " is already installed. Overriding..." << std::endl;
-            // Uninstall first
+            // Uninstall first with privilege
             auto existing = registry.get(name);
             if (existing) {
-                // Remove files
+                // Remove files with privilege
                 for (const auto& file : existing->files) {
                     if (fs::exists(file)) {
-                        fs::remove(file);
+                        utils::exec_command_with_privilege("rm", {"-f", file});
                     }
                 }
-                // Remove symlinks
+                // Remove symlinks with privilege
                 for (const auto& symlink : existing->symlinks) {
                     if (fs::exists(symlink)) {
-                        fs::remove(symlink);
+                        utils::exec_command_with_privilege("rm", {"-f", symlink});
                     }
                 }
                 // Remove from registry
                 registry.remove(name);
                 registry.save();
             }
-        } else {
-            std::cerr << "Error: " << name << " is already installed. Use --override to reinstall." << std::endl;
-            return 1;
         }
     }
 
@@ -115,11 +176,10 @@ int install(const std::vector<std::string>& args) {
 
     std::cout << "Installing " << name << "..." << std::endl;
 
-    // Clone if URL
+    // Clone if URL (run as user for SSH keys)
     if (!url.empty()) {
         std::cout << "Cloning repository..." << std::endl;
-        std::string clone_cmd = "git clone " + url + " " + source_dir;
-        int result = system(clone_cmd.c_str());
+        int result = utils::exec_command_exit_code("git", {"clone", url, source_dir});
         if (result != 0) {
             std::cerr << "Error: Failed to clone repository." << std::endl;
             return 1;
