@@ -15,7 +15,7 @@ pub use git::git_install;
 pub use git::git_install_impl;
 pub use list::list;
 pub use info::info;
-pub use uninstall::uninstall;
+pub use uninstall::{uninstall, uninstall_unsafe};
 pub use update::update;
 pub use fetch::fetch;
 pub use sync::sync;

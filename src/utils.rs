@@ -11,6 +11,11 @@ use std::{
 pub fn root_required() -> Result<()> {
     // Check if we've already re-exec'd to avoid loops
     if std::env::var("MAKEKEEPER_PKEXEC").is_ok() {
+        // Restore original working directory if saved
+        if let Ok(orig_dir) = std::env::var("MAKEKEEPER_ORIG_DIR") {
+            std::env::set_current_dir(&orig_dir)
+                .context("failed to restore working directory")?;
+        }
         return Ok(());
     }
 
@@ -21,9 +26,20 @@ pub fn root_required() -> Result<()> {
         let current_dir = std::env::current_dir()
             .context("failed to get current directory")?;
 
+        // For install command with no path argument, add current directory
+        let mut new_args = args.clone();
+        if args.len() >= 2 && args[1] == "install" {
+            // Check if there are any non-flag arguments after "install"
+            let has_path_arg = args.iter().skip(2).any(|a| !a.starts_with('-'));
+            if !has_path_arg {
+                // No path argument, add current directory
+                new_args.push(current_dir.canonicalize()?.to_string_lossy().to_string());
+            }
+        }
+
         // Convert relative paths to absolute in args
         // Skip the subcommand (index 1) and flags (starting with -)
-        let absolute_args: Vec<String> = args
+        let absolute_args: Vec<String> = new_args
             .iter()
             .enumerate()
             .map(|(i, arg)| {
@@ -48,8 +64,8 @@ pub fn root_required() -> Result<()> {
 
         let status = Command::new("pkexec")
             .args(&absolute_args)
-            .current_dir(current_dir)
             .env("MAKEKEEPER_PKEXEC", "1")
+            .env("MAKEKEEPER_ORIG_DIR", current_dir.to_string_lossy().to_string())
             .status()
             .context("failed to re-exec with pkexec")?;
 

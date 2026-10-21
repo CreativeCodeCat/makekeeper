@@ -4,12 +4,13 @@ use std::os::unix::fs::{PermissionsExt, symlink};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use walkdir::WalkDir;
+use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::config::{APP_ROOT, BIN_DIR, MAN_DIR};
 use crate::models::{Record, InstalledFile, ManagedLink};
 use crate::registry::{record_path, rollback_files, rollback_links, save_record};
 use crate::utils::{confirm, hash_file, now, project_dir, root_required, valid_name};
-use crate::commands::uninstall;
+use crate::commands::uninstall_unsafe;
 
 pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override_: bool, verbose: bool, git_url_arg: Option<String>) -> Result<()> {
     root_required()?;
@@ -60,12 +61,25 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
         return Ok(());
     }
 
+    // Create progress bar
+    let pb = if !verbose {
+        let pb = ProgressBar::new(4);
+        let style = ProgressStyle::default_bar()
+            .template("{bar:40} {msg}")
+            .unwrap_or_else(|_| ProgressStyle::default_bar());
+        pb.set_style(style.progress_chars("▰▱"));
+        pb.set_message("Building...");
+        Some(pb)
+    } else {
+        None
+    };
+
     // Now uninstall if override is set and installation exists
     if override_ && record_file.exists() {
         if verbose {
             eprintln!("Overriding existing installation of {name}...");
         }
-        uninstall::uninstall(&name, true, false)?;
+        uninstall_unsafe(&name, true, false)?;
     }
 
     // Build the default Make target.
@@ -81,6 +95,11 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
     let status = make_status?;
     if !status.success() {
         bail!("make failed; installation stopped");
+    }
+
+    if let Some(ref pb) = pb {
+        pb.inc(1);
+        pb.set_message("Staging...");
     }
 
     // Stage the install before copying anything into the real prefix.
@@ -261,7 +280,15 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
         rollback_files(&record.files);
         let _ = fs::remove_dir_all(&prefix);
         let _ = fs::remove_dir_all(&stage);
+        if let Some(ref pb) = pb {
+            pb.abandon();
+        }
         return Err(e).context("copy failed; attempted rollback");
+    }
+
+    if let Some(ref pb) = pb {
+        pb.inc(1);
+        pb.set_message("Creating symlinks...");
     }
 
     // Only executable files directly in a bin directory get PATH links.
@@ -371,10 +398,19 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
         rollback_files(&record.files);
         let _ = fs::remove_dir_all(&prefix);
         let _ = fs::remove_dir_all(&stage);
+        if let Some(ref pb) = pb {
+            pb.abandon();
+        }
         return Err(e).context("could not save registry; attempted rollback");
     }
 
     let _ = fs::remove_dir_all(&stage);
+
+    if let Some(ref pb) = pb {
+        pb.inc(1);
+        pb.finish_with_message(format!("Installed {} ({} files, {} symlinks)", name, record.files.len(), record.links.len()));
+    }
+
     if verbose {
         println!(
             "Installed {name}: {} files, {} symlinks",

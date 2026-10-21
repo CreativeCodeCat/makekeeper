@@ -11,6 +11,14 @@ pub fn record_path(name: &str) -> PathBuf {
 }
 
 pub fn load_record(name: &str) -> Result<Record> {
+    load_record_impl(name, true)
+}
+
+pub fn load_record_unsafe(name: &str) -> Result<Record> {
+    load_record_impl(name, false)
+}
+
+fn load_record_impl(name: &str, validate: bool) -> Result<Record> {
     if !valid_name(name) {
         bail!("invalid application name");
     }
@@ -23,22 +31,24 @@ pub fn load_record(name: &str) -> Result<Record> {
     let data = std::fs::read(&path)?;
     let record: Record = serde_json::from_slice(&data)?;
 
-    let expected_prefix = Path::new(APP_ROOT).join(name);
-    if record.name != name || Path::new(&record.prefix) != expected_prefix {
-        bail!("invalid registry record; refusing to operate");
-    }
-
-    for file in &record.files {
-        if !Path::new(&file.path).starts_with(&expected_prefix) {
-            bail!("unsafe file path in registry");
+    if validate {
+        let expected_prefix = Path::new(APP_ROOT).join(name);
+        if record.name != name || Path::new(&record.prefix) != expected_prefix {
+            bail!("invalid registry record; refusing to operate");
         }
-    }
 
-    for link in &record.links {
-        let is_safe_path = Path::new(&link.path).starts_with(BIN_DIR)
-            || Path::new(&link.path).starts_with(MAN_DIR);
-        if !is_safe_path || !Path::new(&link.target).starts_with(&expected_prefix) {
-            bail!("unsafe symlink record");
+        for file in &record.files {
+            if !Path::new(&file.path).starts_with(&expected_prefix) {
+                bail!("unsafe file path in registry");
+            }
+        }
+
+        for link in &record.links {
+            let is_safe_path = Path::new(&link.path).starts_with(BIN_DIR)
+                || Path::new(&link.path).starts_with(MAN_DIR);
+            if !is_safe_path || !Path::new(&link.target).starts_with(&expected_prefix) {
+                bail!("unsafe symlink record");
+            }
         }
     }
 

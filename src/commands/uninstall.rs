@@ -4,12 +4,24 @@ use std::io;
 use std::path::Path;
 use walkdir::WalkDir;
 
-use crate::registry::{load_record, record_path};
+use crate::registry::{load_record, load_record_unsafe, record_path};
 use crate::utils::{confirm, hash_file, root_required};
 
 pub fn uninstall(name: &str, yes: bool, verbose: bool) -> Result<()> {
+    uninstall_impl(name, yes, verbose, true)
+}
+
+pub fn uninstall_unsafe(name: &str, yes: bool, verbose: bool) -> Result<()> {
+    uninstall_impl(name, yes, verbose, false)
+}
+
+fn uninstall_impl(name: &str, yes: bool, verbose: bool, validate: bool) -> Result<()> {
     root_required()?;
-    let record = load_record(name)?;
+    let record = if validate {
+        load_record(name)?
+    } else {
+        load_record_unsafe(name)?
+    };
 
     if verbose {
         println!("Application: {name}");

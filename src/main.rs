@@ -25,42 +25,53 @@ fn run() -> Result<()> {
     match Cli::parse().command {
         Action::Inspect { project } => inspect(&project),
         Action::Install { package, name, dir, yes, override_, verbose } => {
-            if let Some(ref pkg_name) = package {
-                // Package name provided, install from packages.json
-                let cache_path = PathBuf::from(config::CACHE_DIR).join("packages.json");
-                if cache_path.exists() {
-                    let content = fs::read_to_string(&cache_path)?;
-                    #[derive(Deserialize)]
-                    struct PackageList {
-                        #[serde(default)]
-                        _version: Option<String>,
-                        packages: Vec<Package>,
-                    }
-                    #[derive(Deserialize)]
-                    struct Package {
-                        name: String,
-                        url: String,
-                        #[serde(rename = "description", default)]
-                        _description: String,
-                        #[serde(rename = "category", default)]
-                        _category: String,
-                    }
-                    let package_list: PackageList = serde_json::from_str(&content)?;
-                    
-                    if let Some(pkg) = package_list.packages.iter().find(|p| p.name == *pkg_name) {
-                        // Found in packages.json, use git install with optional name override
-                        git_install_impl(pkg.url.clone(), name.clone(), yes, override_, verbose)
-                    } else {
-                        anyhow::bail!("Package '{}' not found in package list. Run 'makekeeper search' to find available packages.", pkg_name);
-                    }
-                } else {
-                    anyhow::bail!("Package list not found. Run 'makekeeper sync' first.");
-                }
-            } else if let Some(project_dir) = dir {
+            if let Some(ref project_dir) = dir {
                 // --dir provided, install from directory
                 install(&project_dir, name, yes, override_, verbose, None)
+            } else if let Some(ref pkg_name) = package {
+                // Check if it looks like a path (starts with ./, ../, /, or is an existing path)
+                let is_path = pkg_name.starts_with("./")
+                    || pkg_name.starts_with("../")
+                    || pkg_name.starts_with('/')
+                    || PathBuf::from(pkg_name).exists();
+
+                if is_path {
+                    // Treat as directory path
+                    install(&PathBuf::from(pkg_name), name, yes, override_, verbose, None)
+                } else {
+                    // Treat as package name from catalog
+                    let cache_path = PathBuf::from(config::CACHE_DIR).join("packages.json");
+                    if cache_path.exists() {
+                        let content = fs::read_to_string(&cache_path)?;
+                        #[derive(Deserialize)]
+                        struct PackageList {
+                            #[serde(default)]
+                            _version: Option<String>,
+                            packages: Vec<Package>,
+                        }
+                        #[derive(Deserialize)]
+                        struct Package {
+                            name: String,
+                            url: String,
+                            #[serde(rename = "description", default)]
+                            _description: String,
+                            #[serde(rename = "category", default)]
+                            _category: String,
+                        }
+                        let package_list: PackageList = serde_json::from_str(&content)?;
+
+                        if let Some(pkg) = package_list.packages.iter().find(|p| p.name == *pkg_name) {
+                            // Found in packages.json, use git install with optional name override
+                            git_install_impl(pkg.url.clone(), name.clone(), yes, override_, verbose)
+                        } else {
+                            anyhow::bail!("Package '{}' not found in package list. Run 'makekeeper search' to find available packages.", pkg_name);
+                        }
+                    } else {
+                        anyhow::bail!("Package list not found. Run 'makekeeper sync' first.");
+                    }
+                }
             } else {
-                // No package, install from current directory
+                // No package or dir, install from current directory
                 let project_dir = std::env::current_dir()?;
                 install(&project_dir, name, yes, override_, verbose, None)
             }
