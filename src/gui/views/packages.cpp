@@ -219,7 +219,7 @@ void PackagesView::on_package_selected() {
 
     QString details = QString(
         "<div style='padding: 5px;'>"
-        "<h2 style='color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: 600;'>%1 <span style='font-size: 13px; color: #888888; font-weight: 400; margin-left: 8px;'>v%2</span></h2>"
+        "<h2 style='color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: 600;'>%1 <span style='font-size: 13px; color: #888888; font-weight: 400; margin-left: 8px;'>%2</span></h2>"
         "<div style='background-color: #353535; padding: 8px 12px; border-radius: 4px; margin: 12px 0; color: #cccccc; font-size: 12px; line-height: 1.4;'>%3</div>"
         "<div style='margin: 15px 0;'>"
         "<div style='color: #888888; font-size: 11px; margin-bottom: 4px;'>Repository</div>"
@@ -238,7 +238,7 @@ void PackagesView::on_package_selected() {
     ).arg(name, version, description, url, status_color, status_text, action_buttons);
 
     details_panel_->setHtml(details);
-    terminal_panel_->append(QString("> Selected: %1 v%2").arg(name, version));
+    terminal_panel_->append(QString("> Selected: %1 %2").arg(name, version));
 }
 
 } // namespace views

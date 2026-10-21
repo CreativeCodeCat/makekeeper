@@ -2,6 +2,8 @@
 #define MAKEKEEPER_GUI_VIEWS_REGISTRY_H
 
 #include "base.h"
+#include <QTableWidget>
+#include <QTextEdit>
 
 namespace makekeeper {
 namespace gui {
@@ -13,6 +15,13 @@ class RegistryView : public BaseView {
 public:
     RegistryView(QWidget* parent = nullptr);
     void refresh() override;
+
+private:
+    void setup_ui();
+    void load_registry();
+
+    QTableWidget* registry_table_;
+    QTextEdit* terminal_panel_;
 };
 
 } // namespace views

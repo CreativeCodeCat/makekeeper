@@ -13,13 +13,14 @@ namespace commands {
 
 int install(const std::vector<std::string>& args) {
     if (args.empty()) {
-        std::cerr << "Usage: makekeeper install <NAME|URL> [--name NAME] [--dir DIR]" << std::endl;
+        std::cerr << "Usage: makekeeper install <NAME|URL> [--name NAME] [--dir DIR] [--override]" << std::endl;
         return 1;
     }
 
     std::string source = args[0];
     std::string name;
     std::string dir = ".";
+    bool override = false;
 
     // Parse args
     for (size_t i = 1; i < args.size(); i++) {
@@ -29,6 +30,8 @@ int install(const std::vector<std::string>& args) {
         } else if (args[i] == "--dir" && i + 1 < args.size()) {
             dir = args[i + 1];
             i++;
+        } else if (args[i] == "--override") {
+            override = true;
         }
     }
 
@@ -77,8 +80,31 @@ int install(const std::vector<std::string>& args) {
 
     // Check if already installed
     if (registry.exists(name)) {
-        std::cerr << "Error: " << name << " is already installed." << std::endl;
-        return 1;
+        if (override) {
+            std::cout << name << " is already installed. Overriding..." << std::endl;
+            // Uninstall first
+            auto existing = registry.get(name);
+            if (existing) {
+                // Remove files
+                for (const auto& file : existing->files) {
+                    if (fs::exists(file)) {
+                        fs::remove(file);
+                    }
+                }
+                // Remove symlinks
+                for (const auto& symlink : existing->symlinks) {
+                    if (fs::exists(symlink)) {
+                        fs::remove(symlink);
+                    }
+                }
+                // Remove from registry
+                registry.remove(name);
+                registry.save();
+            }
+        } else {
+            std::cerr << "Error: " << name << " is already installed. Use --override to reinstall." << std::endl;
+            return 1;
+        }
     }
 
     // Don't install with empty name
@@ -134,21 +160,36 @@ int install(const std::vector<std::string>& args) {
         return 1;
     }
 
-    // Get commit hash if git repo
+    // Get commit hash and URL if git repo
     std::string commit_hash;
-    if (!url.empty()) {
-        std::string hash_cmd = "cd " + source_dir + " && git rev-parse HEAD";
+    std::string git_url;
+
+    // Check if source directory is a git repository
+    if (fs::exists(source_dir + "/.git")) {
+        // Get commit hash
         commit_hash = utils::exec_command("git", {"-C", source_dir, "rev-parse", "HEAD"});
-        // Remove trailing newline
         if (!commit_hash.empty() && commit_hash.back() == '\n') {
             commit_hash.pop_back();
         }
+
+        // Get remote URL if not already set
+        if (url.empty()) {
+            git_url = utils::exec_command("git", {"-C", source_dir, "remote", "get-url", "origin"});
+            if (!git_url.empty() && git_url.back() == '\n') {
+                git_url.pop_back();
+            }
+        } else {
+            git_url = url;
+        }
+    } else if (!url.empty()) {
+        // URL was provided, use it
+        git_url = url;
     }
 
     // Create record
     registry::Record record;
     record.name = name;
-    record.url = url;
+    record.url = git_url;
     record.source_dir = source_dir;
     record.commit_hash = commit_hash;
     record.install_date = utils::get_timestamp();
