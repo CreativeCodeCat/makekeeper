@@ -13,6 +13,7 @@
 #include <QJsonArray>
 #include <QFile>
 #include <QFrame>
+#include <QAbstractItemView>
 #include <Qt>
 
 namespace makekeeper {
@@ -76,6 +77,7 @@ void PackagesView::setup_ui() {
     );
     package_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
     package_table_->setSelectionMode(QAbstractItemView::SingleSelection);
+    package_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     QObject::connect(package_table_, &QTableWidget::itemSelectionChanged, [this]() {
         on_package_selected();
     });

@@ -8,6 +8,7 @@
 #include <QHeaderView>
 #include <QTextEdit>
 #include <QFrame>
+#include <QAbstractItemView>
 
 namespace makekeeper {
 namespace gui {
@@ -52,6 +53,7 @@ void RegistryView::setup_ui() {
     );
     registry_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
     registry_table_->setSelectionMode(QAbstractItemView::SingleSelection);
+    registry_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     layout->addWidget(registry_table_);
 
     // Terminal logs
