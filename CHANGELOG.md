@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :wrench: Code Quality:
 
+* Refactor UI styles for consistency and improved theming ([8d95c59](https://github.com/CreativeCodeCat/makekeeper/commit/8d95c59))
 * Refactor GUI structure and enhance CMake configuration ([2a3b19f](https://github.com/CreativeCodeCat/makekeeper/commit/2a3b19f))
 * Refactor project structure and transition to CMake build system ([80d332c](https://github.com/CreativeCodeCat/makekeeper/commit/80d332c))
 * Refactor inspect command to improve target extraction and project handling ([1bd5e66](https://github.com/CreativeCodeCat/makekeeper/commit/1bd5e66))
