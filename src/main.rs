@@ -40,8 +40,10 @@ fn run() -> Result<()> {
                     struct Package {
                         name: String,
                         url: String,
-                        description: String,
-                        category: String,
+                        #[serde(rename = "description", default)]
+                        _description: String,
+                        #[serde(rename = "category", default)]
+                        _category: String,
                     }
                     let package_list: PackageList = serde_json::from_str(&content)?;
                     

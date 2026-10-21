@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use serde_json;
 use std::path::{Path, PathBuf};
 
@@ -15,8 +15,12 @@ pub fn load_record(name: &str) -> Result<Record> {
         bail!("invalid application name");
     }
 
-    let data =
-        std::fs::read(record_path(name)).with_context(|| format!("no registry record for {name}"))?;
+    let path = record_path(name);
+    if !path.exists() {
+        bail!("'{name}' is not installed");
+    }
+
+    let data = std::fs::read(&path)?;
     let record: Record = serde_json::from_slice(&data)?;
 
     let expected_prefix = Path::new(APP_ROOT).join(name);

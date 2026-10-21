@@ -7,7 +7,9 @@ use crate::commands::install;
 use crate::utils::try_clone_with_fallback;
 
 fn get_cache_dir() -> PathBuf {
-    Path::new("/tmp").join("makekeeper-cache")
+    // Use user-specific cache to avoid permission issues
+    let uid = unsafe { libc::getuid() };
+    Path::new("/tmp").join(format!("makekeeper-cache-{}", uid))
 }
 
 pub fn git_install(url: String, name: Option<String>, yes: bool, override_: bool, verbose: bool) -> Result<()> {
@@ -45,17 +47,25 @@ pub fn git_install_impl(url: String, name: Option<String>, yes: bool, override_:
             .arg("fetch")
             .arg("--quiet")
             .current_dir(&repo_cache_dir)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .context("failed to fetch repository")?;
+            .status();
 
-        if !status.success() {
-            bail!("failed to fetch repository");
+        if status.is_err() || !status.map(|s| s.success()).unwrap_or(false) {
+            // Fetch failed, remove cache and re-clone
+            let _ = fs::remove_dir_all(&repo_cache_dir);
+            // Fall through to clone below
+        } else {
+            // Fetch succeeded, proceed to reset
         }
-    } else {
-        // Not cached, do a fresh clone
-        try_clone_with_fallback(&repo_cache_dir, &url)?;
+    }
+
+    // Clone if cache doesn't exist or was removed
+    if !repo_cache_dir.exists() {
+        match try_clone_with_fallback(&repo_cache_dir, &url) {
+            Ok(_) => {},
+            Err(e) => {
+                bail!("failed to clone repository from '{}': {}", url, e);
+            }
+        }
     }
 
     // Reset to origin/HEAD to get the latest commit
@@ -66,11 +76,17 @@ pub fn git_install_impl(url: String, name: Option<String>, yes: bool, override_:
         .current_dir(&repo_cache_dir)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .status()
-        .context("failed to reset repository")?;
+        .status();
 
-    if !reset_status.success() {
-        bail!("failed to reset repository");
+    if reset_status.is_err() || !reset_status.map(|s| s.success()).unwrap_or(false) {
+        // Reset failed, remove cache and re-clone
+        let _ = fs::remove_dir_all(&repo_cache_dir);
+        match try_clone_with_fallback(&repo_cache_dir, &url) {
+            Ok(_) => {},
+            Err(e) => {
+                bail!("failed to clone repository from '{}': {}", url, e);
+            }
+        }
     }
 
     // Store the URL as-is (don't convert to HTTPS)

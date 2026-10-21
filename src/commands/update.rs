@@ -7,7 +7,9 @@ use crate::registry::get_all_records;
 use crate::utils::{confirm, root_required, try_clone_with_fallback};
 
 fn get_cache_dir() -> PathBuf {
-    Path::new("/tmp").join("makekeeper-cache")
+    // Use user-specific cache to avoid permission issues
+    let uid = unsafe { libc::getuid() };
+    Path::new("/tmp").join(format!("makekeeper-cache-{}", uid))
 }
 
 pub fn update(yes: bool, verbose: bool) -> Result<()> {

@@ -17,7 +17,7 @@ pub fn uninstall(name: &str, yes: bool, verbose: bool) -> Result<()> {
         println!("Symlinks: {}", record.links.len());
     }
 
-    if !yes && !confirm("Remove unchanged tracked files? [y/N] ")? {
+    if !yes && !confirm(&format!("Uninstall {name} and remove unchanged files? [y/N] "))? {
         println!("Cancelled.");
         return Ok(());
     }
