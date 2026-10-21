@@ -1,9 +1,14 @@
 /docs/
 
-# Rust
-/target/
-**/*.rs.bk
-Cargo.lock
+# C++ / CMake
+/build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile.cmake
+*.o
+*.so
+*.a
 
 # IDE
 .vscode/
