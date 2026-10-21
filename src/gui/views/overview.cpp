@@ -28,7 +28,7 @@ void OverviewView::setup_ui() {
 
     // Title
     QLabel* title = new QLabel("Overview", this);
-    title->setStyleSheet("font-size: 24px; font-weight: bold; color: #ffffff;");
+    title->setStyleSheet("font-size: 24px; font-weight: bold; color: palette(window-text);");
     layout->addWidget(title);
 
     // Stats grid
@@ -37,16 +37,16 @@ void OverviewView::setup_ui() {
 
     // Total installed card
     QFrame* installed_card = new QFrame(this);
-    installed_card->setStyleSheet("QFrame { background-color: #1e1e1e; border: 1px solid #353535; border-radius: 8px; }");
+    installed_card->setStyleSheet("QFrame { background-color: palette(base); border: 1px solid palette(mid); border-radius: 8px; }");
     QVBoxLayout* installed_layout = new QVBoxLayout(installed_card);
     installed_layout->setContentsMargins(20, 20, 20, 20);
     
     QLabel* installed_label = new QLabel("Total Installed", this);
-    installed_label->setStyleSheet("color: #888888; font-size: 12px; font-weight: 500;");
+    installed_label->setStyleSheet("color: palette(text-disabled); font-size: 12px; font-weight: 500;");
     installed_layout->addWidget(installed_label);
     
     total_installed_label_ = new QLabel("0", this);
-    total_installed_label_->setStyleSheet("color: #2a82da; font-size: 36px; font-weight: bold;");
+    total_installed_label_->setStyleSheet("color: palette(highlight); font-size: 36px; font-weight: bold;");
     installed_layout->addWidget(total_installed_label_);
     
     installed_layout->addStretch();
@@ -54,12 +54,12 @@ void OverviewView::setup_ui() {
 
     // Git repos card
     QFrame* git_card = new QFrame(this);
-    git_card->setStyleSheet("QFrame { background-color: #1e1e1e; border: 1px solid #353535; border-radius: 8px; }");
+    git_card->setStyleSheet("QFrame { background-color: palette(base); border: 1px solid palette(mid); border-radius: 8px; }");
     QVBoxLayout* git_layout = new QVBoxLayout(git_card);
     git_layout->setContentsMargins(20, 20, 20, 20);
     
     QLabel* git_label = new QLabel("Git Repositories", this);
-    git_label->setStyleSheet("color: #888888; font-size: 12px; font-weight: 500;");
+    git_label->setStyleSheet("color: palette(text-disabled); font-size: 12px; font-weight: 500;");
     git_layout->addWidget(git_label);
     
     git_repos_label_ = new QLabel("0", this);
@@ -71,16 +71,16 @@ void OverviewView::setup_ui() {
 
     // Sync status card
     QFrame* sync_card = new QFrame(this);
-    sync_card->setStyleSheet("QFrame { background-color: #1e1e1e; border: 1px solid #353535; border-radius: 8px; }");
+    sync_card->setStyleSheet("QFrame { background-color: palette(base); border: 1px solid palette(mid); border-radius: 8px; }");
     QVBoxLayout* sync_layout = new QVBoxLayout(sync_card);
     sync_layout->setContentsMargins(20, 20, 20, 20);
     
     QLabel* sync_label = new QLabel("Catalog Status", this);
-    sync_label->setStyleSheet("color: #888888; font-size: 12px; font-weight: 500;");
+    sync_label->setStyleSheet("color: palette(text-disabled); font-size: 12px; font-weight: 500;");
     sync_layout->addWidget(sync_label);
     
     sync_status_label_ = new QLabel("Checking...", this);
-    sync_status_label_->setStyleSheet("color: #e0e0e0; font-size: 14px; font-weight: 500;");
+    sync_status_label_->setStyleSheet("color: palette(window-text); font-size: 14px; font-weight: 500;");
     sync_layout->addWidget(sync_status_label_);
     
     sync_layout->addStretch();
@@ -91,7 +91,7 @@ void OverviewView::setup_ui() {
 
     // Quick actions section
     QLabel* actions_title = new QLabel("Quick Actions", this);
-    actions_title->setStyleSheet("color: #e0e0e0; font-size: 16px; font-weight: bold;");
+    actions_title->setStyleSheet("color: palette(window-text); font-size: 16px; font-weight: bold;");
     layout->addWidget(actions_title);
 
     QHBoxLayout* actions_layout = new QHBoxLayout();
@@ -99,9 +99,9 @@ void OverviewView::setup_ui() {
 
     QPushButton* sync_btn = new QPushButton("Sync Catalog", this);
     sync_btn->setStyleSheet(
-        "QPushButton { background-color: #2a82da; color: #ffffff; border: none; border-radius: 4px; padding: 10px 20px; font-size: 13px; font-weight: 500; }"
-        "QPushButton:hover { background-color: #3a92ea; }"
-        "QPushButton:pressed { background-color: #1a72ca; }"
+        "QPushButton { background-color: palette(highlight); color: palette(highlighted-text); border: none; border-radius: 4px; padding: 10px 20px; font-size: 13px; font-weight: 500; }"
+        "QPushButton:hover { background-color: #4DBEF9; }"
+        "QPushButton:pressed { background-color: #2D9ED9; }"
     );
     QObject::connect(sync_btn, &QPushButton::clicked, [this]() {
         run_command("sync");
@@ -110,9 +110,9 @@ void OverviewView::setup_ui() {
 
     QPushButton* update_all_btn = new QPushButton("Update All", this);
     update_all_btn->setStyleSheet(
-        "QPushButton { background-color: #353535; color: #e0e0e0; border: 1px solid #444444; border-radius: 4px; padding: 10px 20px; font-size: 13px; font-weight: 500; }"
-        "QPushButton:hover { background-color: #454545; }"
-        "QPushButton:pressed { background-color: #252525; }"
+        "QPushButton { background-color: palette(button); color: palette(button-text); border: 1px solid palette(mid); border-radius: 4px; padding: 10px 20px; font-size: 13px; font-weight: 500; }"
+        "QPushButton:hover { background-color: #41464B; }"
+        "QPushButton:pressed { background-color: #21262B; }"
     );
     QObject::connect(update_all_btn, &QPushButton::clicked, [this]() {
         run_command("update");
@@ -125,7 +125,7 @@ void OverviewView::setup_ui() {
     // Terminal logs
     QFrame* terminal_frame = new QFrame(this);
     terminal_frame->setMaximumHeight(140);
-    terminal_frame->setStyleSheet("QFrame { background-color: #1e1e1e; border: 1px solid #353535; border-radius: 4px; }");
+    terminal_frame->setStyleSheet("QFrame { background-color: palette(base); border: 1px solid palette(mid); border-radius: 4px; }");
     
     QVBoxLayout* terminal_frame_layout = new QVBoxLayout(terminal_frame);
     terminal_frame_layout->setContentsMargins(0, 0, 0, 0);
@@ -133,9 +133,10 @@ void OverviewView::setup_ui() {
     terminal_panel_ = new QTextEdit(this);
     terminal_panel_->setReadOnly(true);
     terminal_panel_->setFrameStyle(QFrame::NoFrame);
-    terminal_panel_->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     terminal_panel_->setStyleSheet(
-        "QTextEdit { background-color: #1e1e1e; color: #66ff66; font-family: 'Consolas', 'Monospace'; font-size: 11px; border: none; padding: 10px; }"
+        "QTextEdit { background-color: palette(base); color: #66ff66; font-family: 'Consolas', 'Monospace'; font-size: 11px; border: none; padding: 10px; outline: none; }"
+        "QTextEdit:hover { border: none; }"
+        "QTextEdit:focus { border: none; }"
     );
     terminal_panel_->setText("Terminal Logs\n---------\n> MakeKeeper Terminal Ready\n");
     

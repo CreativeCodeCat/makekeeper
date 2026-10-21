@@ -15,6 +15,7 @@
 #include <QFrame>
 #include <QAbstractItemView>
 #include <Qt>
+#include <QColor>
 
 namespace makekeeper {
 namespace gui {
@@ -70,10 +71,10 @@ void PackagesView::setup_ui() {
     package_table_->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     package_table_->setShowGrid(true);
     package_table_->setStyleSheet(
-        "QTableWidget { background-color: #1e1e1e; color: #e0e0e0; border: 1px solid #353535; border-radius: 4px; }"
+        "QTableWidget { background-color: palette(base); color: palette(text); border: 1px solid palette(mid); border-radius: 4px; }"
         "QTableWidget::item { padding: 4px; border: none; }"
-        "QTableWidget::item:selected { background-color: #2a82da; color: #ffffff; }"
-        "QHeaderView::section { background-color: #252525; color: #888888; padding: 6px 8px; border: none; border-bottom: 1px solid #353535; font-weight: bold; font-size: 11px; }"
+        "QTableWidget::item:selected { background-color: palette(highlight); color: palette(highlighted-text); }"
+        "QHeaderView::section { background-color: palette(window); color: palette(text-disabled); padding: 6px 8px; border: none; border-bottom: 1px solid palette(mid); font-weight: bold; font-size: 11px; }"
         "QHeaderView::section::indicator { width: 0px; border: none; background: none; }"
         "QHeaderView::up-arrow, QHeaderView::down-arrow { width: 0px; height: 0px; border: none; background: none; image: none; }"
     );
@@ -93,7 +94,7 @@ void PackagesView::setup_ui() {
     // Details panel (right)
     QFrame* details_frame = new QFrame(this);
     details_frame->setFixedWidth(300);
-    details_frame->setStyleSheet("QFrame { background-color: #1e1e1e; border: 1px solid #353535; border-radius: 4px; }");
+    details_frame->setStyleSheet("QFrame { background-color: palette(base); border: 1px solid palette(mid); border-radius: 4px; }");
     
     QVBoxLayout* details_frame_layout = new QVBoxLayout(details_frame);
     details_frame_layout->setContentsMargins(0, 0, 0, 0);
@@ -103,7 +104,7 @@ void PackagesView::setup_ui() {
     details_panel_->setFrameStyle(QFrame::NoFrame);
     details_panel_->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     details_panel_->setStyleSheet(
-        "QTextEdit { background-color: #1e1e1e; color: #e0e0e0; border: none; padding: 0px; font-size: 12px; }"
+        "QTextEdit { background-color: palette(base); color: palette(text); border: none; padding: 0px; font-size: 12px; }"
     );
     
     details_frame_layout->addWidget(details_panel_);
@@ -114,7 +115,7 @@ void PackagesView::setup_ui() {
     // Terminal logs (bottom)
     QFrame* terminal_frame = new QFrame(this);
     terminal_frame->setMaximumHeight(140);
-    terminal_frame->setStyleSheet("QFrame { background-color: #1e1e1e; border: 1px solid #353535; border-radius: 4px; }");
+    terminal_frame->setStyleSheet("QFrame { background-color: palette(base); border: 1px solid palette(mid); border-radius: 4px; }");
     
     QVBoxLayout* terminal_frame_layout = new QVBoxLayout(terminal_frame);
     terminal_frame_layout->setContentsMargins(0, 0, 0, 0);
@@ -122,9 +123,10 @@ void PackagesView::setup_ui() {
     terminal_panel_ = new QTextEdit(this);
     terminal_panel_->setReadOnly(true);
     terminal_panel_->setFrameStyle(QFrame::NoFrame);
-    terminal_panel_->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     terminal_panel_->setStyleSheet(
-        "QTextEdit { background-color: #1e1e1e; color: #66ff66; font-family: 'Consolas', 'Monospace'; font-size: 11px; border: none; padding: 10px; }"
+        "QTextEdit { background-color: palette(base); color: #66ff66; font-family: 'Consolas', 'Monospace'; font-size: 11px; border: none; padding: 10px; outline: none; }"
+        "QTextEdit:hover { border: none; }"
+        "QTextEdit:focus { border: none; }"
     );
     terminal_panel_->setText("Terminal Logs\n---------\n> MakeKeeper Terminal Ready\n");
     
@@ -177,9 +179,9 @@ void PackagesView::load_packages() {
         QTableWidgetItem* status_item = new QTableWidgetItem(is_installed ? "Up to date" : "Not installed");
         status_item->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         if (is_installed) {
-            status_item->setForeground(QColor(102, 204, 102)); // Green
+            status_item->setForeground(QColor("#66cc66")); // Green
         } else {
-            status_item->setForeground(QColor(204, 153, 102)); // Orange
+            status_item->setForeground(QColor("#7F858B")); // Gray
         }
         package_table_->setItem(i, 2, status_item);
 

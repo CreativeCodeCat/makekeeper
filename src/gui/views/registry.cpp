@@ -9,6 +9,7 @@
 #include <QTextEdit>
 #include <QFrame>
 #include <QAbstractItemView>
+#include <QColor>
 
 namespace makekeeper {
 namespace gui {
@@ -26,7 +27,7 @@ void RegistryView::setup_ui() {
 
     // Title
     QLabel* title = new QLabel("Registry", this);
-    title->setStyleSheet("font-size: 24px; font-weight: bold; color: #ffffff;");
+    title->setStyleSheet("font-size: 24px; font-weight: bold; color: palette(window-text);");
     layout->addWidget(title);
 
     // Registry table
@@ -46,10 +47,10 @@ void RegistryView::setup_ui() {
     registry_table_->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     registry_table_->setShowGrid(true);
     registry_table_->setStyleSheet(
-        "QTableWidget { background-color: #1e1e1e; color: #e0e0e0; border: 1px solid #353535; border-radius: 4px; }"
+        "QTableWidget { background-color: palette(base); color: palette(text); border: 1px solid palette(mid); border-radius: 4px; }"
         "QTableWidget::item { padding: 4px; border: none; }"
-        "QTableWidget::item:selected { background-color: #2a82da; color: #ffffff; }"
-        "QHeaderView::section { background-color: #252525; color: #888888; padding: 6px 8px; border: none; border-bottom: 1px solid #353535; font-weight: bold; font-size: 11px; }"
+        "QTableWidget::item:selected { background-color: palette(highlight); color: palette(highlighted-text); }"
+        "QHeaderView::section { background-color: palette(window); color: palette(text-disabled); padding: 6px 8px; border: none; border-bottom: 1px solid palette(mid); font-weight: bold; font-size: 11px; }"
     );
     registry_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
     registry_table_->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -59,7 +60,7 @@ void RegistryView::setup_ui() {
     // Terminal logs
     QFrame* terminal_frame = new QFrame(this);
     terminal_frame->setMaximumHeight(140);
-    terminal_frame->setStyleSheet("QFrame { background-color: #1e1e1e; border: 1px solid #353535; border-radius: 4px; }");
+    terminal_frame->setStyleSheet("QFrame { background-color: palette(base); border: 1px solid palette(mid); border-radius: 4px; }");
     
     QVBoxLayout* terminal_frame_layout = new QVBoxLayout(terminal_frame);
     terminal_frame_layout->setContentsMargins(0, 0, 0, 0);
@@ -67,9 +68,10 @@ void RegistryView::setup_ui() {
     terminal_panel_ = new QTextEdit(this);
     terminal_panel_->setReadOnly(true);
     terminal_panel_->setFrameStyle(QFrame::NoFrame);
-    terminal_panel_->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     terminal_panel_->setStyleSheet(
-        "QTextEdit { background-color: #1e1e1e; color: #66ff66; font-family: 'Consolas', 'Monospace'; font-size: 11px; border: none; padding: 10px; }"
+        "QTextEdit { background-color: palette(base); color: #66ff66; font-family: 'Consolas', 'Monospace'; font-size: 11px; border: none; padding: 10px; outline: none; }"
+        "QTextEdit:hover { border: none; }"
+        "QTextEdit:focus { border: none; }"
     );
     terminal_panel_->setText("Terminal Logs\n---------\n> Registry view loaded\n");
     
