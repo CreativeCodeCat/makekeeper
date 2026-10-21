@@ -32,12 +32,6 @@ int install(const std::vector<std::string>& args) {
         }
     }
 
-    // Check if root
-    if (!utils::is_root()) {
-        std::cerr << "Error: This command requires root privileges." << std::endl;
-        return 1;
-    }
-
     // Load registry
     auto& registry = registry::Registry::instance();
     if (!registry.load()) {
@@ -115,8 +109,7 @@ int install(const std::vector<std::string>& args) {
 
     // Build
     std::cout << "Building..." << std::endl;
-    std::string build_cmd = "cd " + source_dir + " && make";
-    int result = system(build_cmd.c_str());
+    int result = utils::exec_command_with_privilege("make", {"-C", source_dir});
     if (result != 0) {
         std::cerr << "Error: Build failed." << std::endl;
         return 1;
@@ -124,8 +117,7 @@ int install(const std::vector<std::string>& args) {
 
     // Install
     std::cout << "Installing..." << std::endl;
-    std::string install_cmd = "cd " + source_dir + " && sudo make install";
-    result = system(install_cmd.c_str());
+    result = utils::exec_command_with_privilege("make", {"-C", source_dir, "install"});
     if (result != 0) {
         std::cerr << "Error: Install failed." << std::endl;
         return 1;

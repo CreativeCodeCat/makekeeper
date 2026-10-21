@@ -18,12 +18,6 @@ int uninstall(const std::vector<std::string>& args) {
 
     std::string name = args[0];
 
-    // Check if root
-    if (!utils::is_root()) {
-        std::cerr << "Error: This command requires root privileges." << std::endl;
-        return 1;
-    }
-
     // Load registry
     auto& registry = registry::Registry::instance();
     if (!registry.load()) {
@@ -42,15 +36,19 @@ int uninstall(const std::vector<std::string>& args) {
 
     // Run make uninstall if source dir exists
     if (!record->source_dir.empty() && fs::exists(record->source_dir)) {
-        std::string uninstall_cmd = "cd " + record->source_dir + " && make uninstall";
-        system(uninstall_cmd.c_str());
+        utils::exec_command_with_privilege("make", {"-C", record->source_dir, "uninstall"});
     }
 
     // Remove all installed files
     for (const auto& file : record->files) {
         if (fs::exists(file)) {
             try {
-                fs::remove(file);
+                // Use pkexec for files in system directories
+                if (file.find("/usr/") == 0 || file.find("/var/") == 0) {
+                    utils::exec_command_with_privilege("rm", {"-f", file});
+                } else {
+                    fs::remove(file);
+                }
                 std::cout << "  Removed: " << file << std::endl;
             } catch (const std::exception& e) {
                 std::cerr << "  Warning: Failed to remove " << file << ": " << e.what() << std::endl;
@@ -72,19 +70,7 @@ int uninstall(const std::vector<std::string>& args) {
     // If uninstalling makekeeper itself, remove registry and cache
     if (name == "makekeeper") {
         std::cout << "  Removing registry..." << std::endl;
-        try {
-            if (fs::exists(config::REGISTRY_FILE)) {
-                fs::remove(config::REGISTRY_FILE);
-            }
-            if (fs::exists(config::REGISTRY_DIR)) {
-                fs::remove_all(config::REGISTRY_DIR);
-            }
-            if (fs::exists(config::CACHE_DIR)) {
-                fs::remove_all(config::CACHE_DIR);
-            }
-        } catch (const std::exception& e) {
-            std::cerr << "  Warning: Failed to remove registry/cache: " << e.what() << std::endl;
-        }
+        utils::exec_command_with_privilege("rm", {"-rf", config::REGISTRY_DIR});
     }
 
     std::cout << "✓ Uninstalled " << name << std::endl;

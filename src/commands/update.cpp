@@ -18,12 +18,6 @@ int update(const std::vector<std::string>& args) {
 
     std::string name = args[0];
 
-    // Check if root
-    if (!utils::is_root()) {
-        std::cerr << "Error: This command requires root privileges." << std::endl;
-        return 1;
-    }
-
     // Load registry
     auto& registry = registry::Registry::instance();
     if (!registry.load()) {
@@ -46,15 +40,13 @@ int update(const std::vector<std::string>& args) {
     std::cout << "Updating " << name << "..." << std::endl;
 
     // Fetch changes
-    std::string fetch_cmd = "cd " + record->source_dir + " && git fetch";
-    int result = system(fetch_cmd.c_str());
+    int result = utils::exec_command_with_privilege("git", {"-C", record->source_dir, "fetch"});
     if (result != 0) {
         std::cerr << "Error: Failed to fetch updates." << std::endl;
         return 1;
     }
 
     // Check if there are changes
-    std::string status_cmd = "cd " + record->source_dir + " && git status -sb";
     std::string status = utils::exec_command("git", {"-C", record->source_dir, "status", "-sb"});
 
     // Check if ahead of origin
@@ -64,8 +56,7 @@ int update(const std::vector<std::string>& args) {
     }
 
     // Pull changes
-    std::string pull_cmd = "cd " + record->source_dir + " && git pull";
-    result = system(pull_cmd.c_str());
+    result = utils::exec_command_with_privilege("git", {"-C", record->source_dir, "pull"});
     if (result != 0) {
         std::cerr << "Error: Failed to pull updates." << std::endl;
         return 1;
@@ -73,8 +64,12 @@ int update(const std::vector<std::string>& args) {
 
     // Rebuild
     std::cout << "Rebuilding..." << std::endl;
-    std::string build_cmd = "cd " + record->source_dir + " && make clean && make";
-    result = system(build_cmd.c_str());
+    result = utils::exec_command_with_privilege("make", {"-C", record->source_dir, "clean"});
+    if (result != 0) {
+        std::cerr << "Error: Clean failed." << std::endl;
+        return 1;
+    }
+    result = utils::exec_command_with_privilege("make", {"-C", record->source_dir});
     if (result != 0) {
         std::cerr << "Error: Build failed." << std::endl;
         return 1;
@@ -82,8 +77,7 @@ int update(const std::vector<std::string>& args) {
 
     // Reinstall
     std::cout << "Reinstalling..." << std::endl;
-    std::string install_cmd = "cd " + record->source_dir + " && sudo make install";
-    result = system(install_cmd.c_str());
+    result = utils::exec_command_with_privilege("make", {"-C", record->source_dir, "install"});
     if (result != 0) {
         std::cerr << "Error: Install failed." << std::endl;
         return 1;

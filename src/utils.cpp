@@ -72,6 +72,43 @@ std::string exec_command(const std::string& command, const std::vector<std::stri
     return result;
 }
 
+int exec_command_with_privilege(const std::string& command, const std::vector<std::string>& args) {
+    std::vector<char*> argv;
+    
+    if (is_root()) {
+        // Already root, execute directly
+        argv.push_back(const_cast<char*>(command.c_str()));
+        for (const auto& arg : args) {
+            argv.push_back(const_cast<char*>(arg.c_str()));
+        }
+    } else {
+        // Use pkexec for privilege escalation
+        argv.push_back(const_cast<char*>("pkexec"));
+        argv.push_back(const_cast<char*>(command.c_str()));
+        for (const auto& arg : args) {
+            argv.push_back(const_cast<char*>(arg.c_str()));
+        }
+    }
+    argv.push_back(nullptr);
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        return -1;
+    }
+
+    if (pid == 0) {
+        // Child process
+        execvp(argv[0], argv.data());
+        _exit(127);
+    }
+
+    // Parent process
+    int status;
+    waitpid(pid, &status, 0);
+
+    return WEXITSTATUS(status);
+}
+
 std::string get_timestamp() {
     time_t now = time(nullptr);
     char buf[80];

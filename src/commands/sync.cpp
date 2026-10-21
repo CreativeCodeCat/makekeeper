@@ -21,19 +21,17 @@ struct Package {
 };
 
 int sync(const std::vector<std::string>& args) {
-    // Check if root
+    // Ensure cache directory exists with privilege
     if (!utils::is_root()) {
-        std::cerr << "Error: This command requires root privileges." << std::endl;
-        return 1;
+        utils::exec_command_with_privilege("mkdir", {"-p", config::CACHE_DIR});
+    } else {
+        utils::ensure_directory(std::string(config::CACHE_DIR));
     }
-
-    // Ensure cache directory exists
-    utils::ensure_directory(std::string(config::CACHE_DIR));
 
     std::cout << "Downloading package catalog..." << std::endl;
 
-    // Download packages.json
-    std::string temp_file = std::string(config::CACHE_DIR) + "/packages.json.tmp";
+    // Download packages.json to temp location first
+    std::string temp_file = "/tmp/packages.json.tmp";
     if (!utils::download_file(config::PACKAGES_URL, temp_file)) {
         std::cerr << "Error: Failed to download package catalog." << std::endl;
         return 1;
@@ -73,7 +71,7 @@ int sync(const std::vector<std::string>& args) {
 
     if (remote_version == local_version) {
         std::cout << "Package list is already up to date (version " << remote_version << ")" << std::endl;
-        fs::remove(temp_file);
+        std::remove(temp_file.c_str());
         return 0;
     }
 
@@ -86,8 +84,8 @@ int sync(const std::vector<std::string>& args) {
         item["latest_version"] = version;
     }
 
-    // Write enriched catalog
-    std::ofstream output(config::CACHE_FILE);
+    // Write enriched catalog to temp file
+    std::ofstream output(temp_file);
     if (!output.is_open()) {
         std::cerr << "Error: Failed to write package catalog." << std::endl;
         return 1;
@@ -96,8 +94,12 @@ int sync(const std::vector<std::string>& args) {
     output << j.dump(2);
     output.close();
 
-    // Remove temp file
-    fs::remove(temp_file);
+    // Move to final location with privilege
+    if (!utils::is_root()) {
+        utils::exec_command_with_privilege("mv", {temp_file, config::CACHE_FILE});
+    } else {
+        fs::rename(temp_file, config::CACHE_FILE);
+    }
 
     std::cout << "✓ Package catalog updated to version " << remote_version << std::endl;
 
