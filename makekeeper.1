@@ -16,6 +16,8 @@ Applications are installed to
 and executable symlinks are created in
 .IR /usr/local/bin/ .
 
+makekeeper automatically uses pkexec for operations requiring root privileges.
+
 .SH COMMANDS
 
 .TP
@@ -23,16 +25,18 @@ and executable symlinks are created in
 Inspect a project's Makefile and preview installation commands. This shows possible Make targets and a dry-run preview of the installation without actually installing.
 
 .TP
-.B install [PROJECT] [OPTIONS]
-Build and install a project. The project is built using
-.BR make ,
-staged to a temporary directory, checked for conflicts, and then installed.
+.B install [PACKAGE] [OPTIONS]
+Build and install a project. If PACKAGE is a known package name from the catalog, it will be installed from its git repository. Otherwise, use \-\-dir to install from a local directory.
 
 .RS
 .RS
 .TP
+.B \-\-dir [PATH]
+Install from a specific directory instead of the package catalog.
+
+.TP
 .B \-\-name [NAME]
-Specify a custom application name. Defaults to the project directory name.
+Specify a custom application name. Defaults to the package name or directory name.
 
 .TP
 .B \-\-yes
@@ -50,9 +54,7 @@ Show detailed installation output.
 
 .TP
 .B git [URL] [OPTIONS]
-Clone a git repository and install it. This command requires root privileges. The repository is cloned to a temporary directory, then installed using the same process as
-.BR install .
-The cloned directory is cleaned up after installation.
+Clone a git repository and install it. The repository is cloned to a cache directory and kept for future updates.
 
 .RS
 .RS
@@ -73,6 +75,34 @@ Override an existing installation. This will uninstall the existing version befo
 Show detailed installation output.
 .RE
 .RE
+
+.TP
+.B update [OPTIONS]
+Check for updates to all Git-based installations and rebuild any that have changed on the remote repository.
+
+.RS
+.RS
+.TP
+.B \-\-yes
+Skip the confirmation prompt.
+
+.TP
+.B \-\-verbose
+Show detailed update output.
+.RE
+.RE
+
+.TP
+.B sync
+Download the latest package catalog from the remote server. This is required before using package-based installation or search.
+
+.TP
+.B search [QUERY]
+Search the package catalog for applications matching your query. Searches across package names, descriptions, categories, and URLs.
+
+.TP
+.B fetch
+Show the count of installed packages and Git-tracked packages.
 
 .TP
 .B list
@@ -110,11 +140,35 @@ Print version information.
 
 .SH EXAMPLES
 
-Install a project:
+Sync package catalog:
 .RS
 .PP
 .nf
-sudo makekeeper install /path/to/project
+makekeeper sync
+.fi
+.RE
+
+Search for packages:
+.RS
+.PP
+.nf
+makekeeper search terminal
+.fi
+.RE
+
+Install from package catalog:
+.RS
+.PP
+.nf
+makekeeper install neofetch
+.fi
+.RE
+
+Install from directory:
+.RS
+.PP
+.nf
+makekeeper install --dir /path/to/project
 .fi
 .RE
 
@@ -122,7 +176,7 @@ Install with a custom name:
 .RS
 .PP
 .nf
-sudo makekeeper install /path/to/project --name myapp
+makekeeper install --dir /path/to/project --name myapp
 .fi
 .RE
 
@@ -130,7 +184,15 @@ Install from a git repository:
 .RS
 .PP
 .nf
-sudo makekeeper git https://github.com/user/project
+makekeeper git https://github.com/user/project
+.fi
+.RE
+
+Update Git-based installations:
+.RS
+.PP
+.nf
+makekeeper update
 .fi
 .RE
 
@@ -146,7 +208,7 @@ List installed applications:
 .RS
 .PP
 .nf
-sudo makekeeper list
+makekeeper list
 .fi
 .RE
 
@@ -154,7 +216,7 @@ View installation details:
 .RS
 .PP
 .nf
-sudo makekeeper info myapp
+makekeeper info myapp
 .fi
 .RE
 
@@ -162,7 +224,7 @@ Uninstall an application:
 .RS
 .PP
 .nf
-sudo makekeeper uninstall myapp
+makekeeper uninstall myapp
 .fi
 .RE
 
@@ -182,7 +244,7 @@ Installation records tracking files and symlinks.
 
 .SH SECURITY
 
-makekeeper requires root privileges for system-wide installation. Makefiles can execute arbitrary code; only install projects you trust. Always inspect a project with makekeeper inspect before installing. The make install step is not sandboxed.
+makekeeper automatically uses pkexec for operations requiring root privileges. Makefiles can execute arbitrary code; only install projects you trust. Always inspect a project with makekeeper inspect before installing. The make install step is not sandboxed.
 
 .SH REQUIREMENTS
 

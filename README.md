@@ -12,6 +12,9 @@ makekeeper provides a controlled way to install applications that use GNU Make b
 - **Preview before install**: Inspect Makefiles and preview installation commands
 - **Executable symlinks**: Automatically links executables from `bin/` directories to `/usr/local/bin`
 - **Man page support**: Automatically symlinks man pages to `/usr/share/man`
+- **Git repository support**: Install directly from git repositories with automatic caching
+- **Update detection**: Check for and update Git-based installations when remote changes
+- **Package catalog**: Browse and install from a curated list of Makefile-based applications
 - **Modular architecture**: Clean codebase with organized modules for maintainability
 
 ## Installation
@@ -20,15 +23,47 @@ makekeeper provides a controlled way to install applications that use GNU Make b
 
 ```bash
 cargo build --release
-sudo make install
+make install
 ```
+
+Note: makekeeper automatically uses pkexec for operations requiring root privileges.
 
 ## Usage
 
-### Install a project
+### Install from a package catalog
 
 ```bash
-sudo makekeeper install /path/to/project
+makekeeper install <package-name>
+```
+
+Install from the curated package catalog:
+
+```bash
+makekeeper install neofetch
+```
+
+Install with a custom name:
+
+```bash
+makekeeper install neofetch --name myneofetch
+```
+
+### Install from a directory
+
+```bash
+makekeeper install --dir /path/to/project
+```
+
+Install from a specific directory:
+
+```bash
+makekeeper install --dir /path/to/project --name myapp
+```
+
+Install from current directory:
+
+```bash
+makekeeper install --name myapp
 ```
 
 This will:
@@ -40,66 +75,90 @@ This will:
 6. Create symlinks in `/usr/local/bin` for executables
 7. Create symlinks in `/usr/share/man` for man pages
 
-You can specify a custom name:
+Skip confirmation with `--yes`:
 
 ```bash
-sudo makekeeper install /path/to/project --name myapp
-```
-
-Or skip confirmation with `--yes`:
-
-```bash
-sudo makekeeper install /path/to/project --yes
+makekeeper install --dir /path/to/project --yes
 ```
 
 Override an existing installation:
 
 ```bash
-sudo makekeeper install /path/to/project --override
+makekeeper install --dir /path/to/project --override
 ```
 
 Show detailed installation output with `--verbose`:
 
 ```bash
-sudo makekeeper install /path/to/project --verbose
+makekeeper install --dir /path/to/project --verbose
 ```
 
 ### Install from a git repository
 
 ```bash
-sudo makekeeper git <git-url>
+makekeeper git <git-url>
 ```
 
 This will:
-1. Clone the repository to a temporary directory
+1. Clone the repository to a cache directory
 2. Build and install the project using the same process as `install`
-3. Clean up the cloned directory after installation
-
-Note: This command requires root privileges (sudo).
+3. Keep the repository cached for future updates
 
 You can specify a custom name:
 
 ```bash
-sudo makekeeper git <git-url> --name myapp
+makekeeper git <git-url> --name myapp
 ```
 
 Or skip confirmation with `--yes`:
 
 ```bash
-sudo makekeeper git <git-url> --yes
+makekeeper git <git-url> --yes
 ```
 
 Override an existing installation:
 
 ```bash
-sudo makekeeper git <git-url> --override
+makekeeper git <git-url> --override
 ```
 
 Show detailed installation output with `--verbose`:
 
 ```bash
-sudo makekeeper git <git-url> --verbose
+makekeeper git <git-url> --verbose
 ```
+
+### Sync package catalog
+
+```bash
+makekeeper sync
+```
+
+Download the latest package catalog from the remote server. This is required before using package-based installation or search.
+
+### Search packages
+
+```bash
+makekeeper search <query>
+```
+
+Search the package catalog for applications matching your query. Searches across package names, descriptions, categories, and URLs.
+
+### Update Git-based installations
+
+```bash
+makekeeper update
+```
+
+Check for updates to all Git-based installations and rebuild any that have changed on the remote repository.
+
+### Fetch statistics
+
+```bash
+makekeeper fetch
+```
+
+Show the count of installed packages and Git-tracked packages.
 
 ### Inspect a project
 
@@ -116,13 +175,13 @@ This shows:
 ### List installed applications
 
 ```bash
-sudo makekeeper list
+makekeeper list
 ```
 
 ### View installation details
 
 ```bash
-sudo makekeeper info <name>
+makekeeper info <name>
 ```
 
 Shows the source, prefix, installed files, and managed symlinks.
@@ -130,7 +189,7 @@ Shows the source, prefix, installed files, and managed symlinks.
 ### Uninstall an application
 
 ```bash
-sudo makekeeper uninstall <name>
+makekeeper uninstall <name>
 ```
 
 This removes:
@@ -174,7 +233,7 @@ Installation records are stored in:
 
 ## Security Considerations
 
-- makekeeper requires root privileges for system-wide installation
+- makekeeper automatically uses pkexec for operations requiring root privileges
 - Makefiles can execute arbitrary code—only install projects you trust
 - Always inspect a project with `makekeeper inspect` before installing
 - The `make install` step is not sandboxed
@@ -221,9 +280,14 @@ src/
 └── commands/         # Command implementations
     ├── inspect.rs    # Inspect project Makefile
     ├── install.rs    # Install a project
+    ├── git.rs        # Install from git repository
+    ├── update.rs     # Update Git-based installations
     ├── list.rs       # List installed applications
     ├── info.rs       # Show application details
-    └── uninstall.rs  # Uninstall an application
+    ├── uninstall.rs  # Uninstall an application
+    ├── sync.rs       # Sync package catalog
+    ├── search.rs     # Search package catalog
+    └── fetch.rs      # Show installation statistics
 ```
 
 ## License
