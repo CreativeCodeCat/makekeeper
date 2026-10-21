@@ -6,7 +6,7 @@ const https = require("https");
 
 const OUTPUT_FILE = "CHANGELOG.md";
 const TAGS_TO_INCLUDE = 10; // Number of recent tags to include
-const REPO_URL = "https://github.com/CodeWorksCreativeHub/mLauncher";
+const REPO_URL = "https://github.com/CreativeCodeCat/makekeeper";
 
 const HEADER = `# Changelog
 
@@ -126,7 +126,7 @@ function linkPR(message) {
 function getReleaseTitle(tag) {
 	const options = {
 		hostname: "api.github.com",
-		path: `/repos/CodeWorksCreativeHub/mLauncher/releases/tags/${tag}`,
+		path: `/repos/CreativeCodeCat/makekeeper/releases/tags/${tag}`,
 		method: "GET",
 		headers: { "User-Agent": "Node.js" },
 	};
