@@ -4,12 +4,14 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::config::CACHE_DIR;
+use crate::utils::root_required;
 
 const PACKAGES_URL: &str = "https://creativecodecat.github.io/makekeeper/packages.json";
 
 #[derive(Debug, Serialize, Deserialize)]
 struct PackageList {
-    version: String,
+    #[serde(default)]
+    version: Option<String>,
     packages: Vec<Package>,
 }
 
@@ -22,6 +24,7 @@ struct Package {
 }
 
 pub fn sync() -> Result<()> {
+    root_required()?;
     let cache_path = PathBuf::from(CACHE_DIR).join("packages.json");
 
     // Create cache directory if it doesn't exist
@@ -45,6 +48,8 @@ pub fn sync() -> Result<()> {
     let remote_list: PackageList = serde_json::from_str(&remote_content)
         .context("failed to parse remote packages.json")?;
 
+    let remote_version = remote_list.version.clone();
+
     // Check if we have a cached version
     let needs_update = if cache_path.exists() {
         let cached_content = fs::read_to_string(&cache_path)
@@ -53,8 +58,11 @@ pub fn sync() -> Result<()> {
         let cached_list: PackageList = serde_json::from_str(&cached_content)
             .context("failed to parse cached packages.json")?;
 
-        // Compare versions
-        cached_list.version != remote_list.version
+        // Compare versions (if both have versions)
+        match (cached_list.version, remote_version.clone()) {
+            (Some(cached), Some(remote)) => cached != remote,
+            _ => true, // If either is missing, update
+        }
     } else {
         true // No cache, needs update
     };
@@ -64,9 +72,17 @@ pub fn sync() -> Result<()> {
         fs::write(&cache_path, remote_content)
             .context("failed to write packages.json to cache")?;
 
-        println!("Updated package list to version {}", remote_list.version);
+        if let Some(ref v) = remote_version {
+            println!("Updated package list to version {}", v);
+        } else {
+            println!("Updated package list");
+        }
     } else {
-        println!("Package list is already up to date (version {})", remote_list.version);
+        if let Some(ref v) = remote_version {
+            println!("Package list is already up to date (version {})", v);
+        } else {
+            println!("Package list is already up to date");
+        }
     }
 
     Ok(())

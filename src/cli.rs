@@ -17,9 +17,12 @@ pub enum Action {
     Inspect { project: PathBuf },
     /// Build and install a project.
     Install {
-        project: PathBuf,
-        #[arg(long)]
+        #[arg(help = "Package name from package list (optional, or directory path if --dir is used)")]
+        package: Option<String>,
+        #[arg(long, help = "Custom name for installation")]
         name: Option<String>,
+        #[arg(long, help = "Directory to install from")]
+        dir: Option<PathBuf>,
         #[arg(long, help = "Skip confirmation prompt")]
         yes: bool,
         #[arg(long, help = "Override existing installation")]
@@ -62,4 +65,6 @@ pub enum Action {
     Fetch,
     /// Sync package list from remote repository.
     Sync,
+    /// Search for packages in the cached package list.
+    Search { query: String },
 }

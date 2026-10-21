@@ -11,6 +11,10 @@ fn get_cache_dir() -> PathBuf {
 }
 
 pub fn git_install(url: String, name: Option<String>, yes: bool, override_: bool, verbose: bool) -> Result<()> {
+    git_install_impl(url, name, yes, override_, verbose)
+}
+
+pub fn git_install_impl(url: String, name: Option<String>, yes: bool, override_: bool, verbose: bool) -> Result<()> {
     // Check if git is available
     let git_check = Command::new("git")
         .arg("--version")

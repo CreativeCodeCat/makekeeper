@@ -7,13 +7,16 @@ pub mod uninstall;
 pub mod update;
 pub mod fetch;
 pub mod sync;
+pub mod search;
 
 pub use inspect::inspect;
 pub use install::{install, get_git_commit_hash};
 pub use git::git_install;
+pub use git::git_install_impl;
 pub use list::list;
 pub use info::info;
 pub use uninstall::uninstall;
 pub use update::update;
 pub use fetch::fetch;
 pub use sync::sync;
+pub use search::search;

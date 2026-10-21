@@ -41,13 +41,11 @@ pub fn install(project_arg: &Path, name_arg: Option<String>, yes: bool, override
         bail!("installation prefix already exists: {}", prefix.display());
     }
 
-    if verbose {
-        println!("Source:  {}", project.display());
-        println!("Name:    {name}");
-        println!("Prefix:  {}", prefix.display());
-        println!("Links:   executable files in {APP_ROOT} will be linked into {BIN_DIR}");
-        println!("\nMakefiles can execute arbitrary code. Only install projects you trust.");
-    }
+    println!("Source:  {}", project.display());
+    println!("Name:    {name}");
+    println!("Prefix:  {}", prefix.display());
+    println!("Links:   executable files in {APP_ROOT} will be linked into {BIN_DIR}");
+    println!("\nMakefiles can execute arbitrary code. Only install projects you trust.");
 
     // Early check: if the app name already exists in /usr/local/bin, warn but continue.
     let potential_link = Path::new(BIN_DIR).join(&name);
