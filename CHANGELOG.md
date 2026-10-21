@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :wrench: Code Quality:
 
+* Refactor project structure and transition to CMake build system ([80d332c](https://github.com/CreativeCodeCat/makekeeper/commit/80d332c))
 * Refactor inspect command to improve target extraction and project handling ([1bd5e66](https://github.com/CreativeCodeCat/makekeeper/commit/1bd5e66))
 * Refactor root permission handling and simplify git commands ([8fa9805](https://github.com/CreativeCodeCat/makekeeper/commit/8fa9805))
 * Refactor git installation and update commands to use a shared cache directory ([42b8985](https://github.com/CreativeCodeCat/makekeeper/commit/42b8985))
