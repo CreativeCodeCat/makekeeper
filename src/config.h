@@ -14,6 +14,9 @@ inline constexpr const char* REGISTRY_FILE = "/var/lib/makekeeper/registry.json"
 inline constexpr const char* APP_ROOT = "/opt/makekeeper/apps";
 inline constexpr const char* BIN_DIR = "/usr/local/bin";
 inline constexpr const char* MAN_DIR = "/usr/share/man/man1";
+inline constexpr const char* DESKTOP_DIR = "/usr/local/share/applications";
+inline constexpr const char* ICON_DIR = "/usr/local/share/icons/hicolor/128x128/apps";
+inline constexpr const char* ICON_SVG_DIR = "/usr/local/share/icons/hicolor/scalable/apps";
 
 // Package catalog
 inline constexpr const char* PACKAGES_URL = "https://creativecodecat.github.io/makekeeper/packages.json";

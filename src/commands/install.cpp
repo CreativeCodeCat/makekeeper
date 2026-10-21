@@ -150,8 +150,41 @@ int install(const std::vector<std::string>& args) {
     record.commit_hash = commit_hash;
     record.install_date = utils::get_timestamp();
 
-    // Scan for installed files (simplified)
-    // In a real implementation, we'd track actual files installed
+    // Track installed files from common locations
+    std::string binary_path = std::string(config::BIN_DIR) + "/" + name;
+    if (fs::exists(binary_path)) {
+        record.files.push_back(binary_path);
+        record.symlinks.push_back(binary_path);
+    }
+
+    // Track manpage if it exists
+    std::string manpage_path = std::string(config::MAN_DIR) + "/" + name + ".1";
+    if (fs::exists(manpage_path)) {
+        record.files.push_back(manpage_path);
+    }
+
+    // Track fish completion if it exists
+    std::string fish_comp_path = "/usr/share/fish/vendor_completions.d/" + name + ".fish";
+    if (fs::exists(fish_comp_path)) {
+        record.files.push_back(fish_comp_path);
+    }
+
+    // Track desktop file if it exists
+    std::string desktop_path = std::string(config::DESKTOP_DIR) + "/" + name + ".desktop";
+    if (fs::exists(desktop_path)) {
+        record.files.push_back(desktop_path);
+    }
+
+    // Track icons if they exist
+    std::string icon_png = std::string(config::ICON_DIR) + "/" + name + "-128.png";
+    if (fs::exists(icon_png)) {
+        record.files.push_back(icon_png);
+    }
+
+    std::string icon_svg = std::string(config::ICON_SVG_DIR) + "/" + name + ".svg";
+    if (fs::exists(icon_svg)) {
+        record.files.push_back(icon_svg);
+    }
 
     registry.add(record);
 

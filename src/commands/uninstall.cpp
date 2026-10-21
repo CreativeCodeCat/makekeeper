@@ -46,15 +46,46 @@ int uninstall(const std::vector<std::string>& args) {
         system(uninstall_cmd.c_str());
     }
 
+    // Remove all installed files
+    for (const auto& file : record->files) {
+        if (fs::exists(file)) {
+            try {
+                fs::remove(file);
+                std::cout << "  Removed: " << file << std::endl;
+            } catch (const std::exception& e) {
+                std::cerr << "  Warning: Failed to remove " << file << ": " << e.what() << std::endl;
+            }
+        }
+    }
+
     // Remove symlinks
     for (const auto& symlink : record->symlinks) {
         if (utils::is_symlink(symlink)) {
             utils::remove_symlink(symlink);
+            std::cout << "  Removed symlink: " << symlink << std::endl;
         }
     }
 
     // Remove from registry
     registry.remove(name);
+
+    // If uninstalling makekeeper itself, remove registry and cache
+    if (name == "makekeeper") {
+        std::cout << "  Removing registry..." << std::endl;
+        try {
+            if (fs::exists(config::REGISTRY_FILE)) {
+                fs::remove(config::REGISTRY_FILE);
+            }
+            if (fs::exists(config::REGISTRY_DIR)) {
+                fs::remove_all(config::REGISTRY_DIR);
+            }
+            if (fs::exists(config::CACHE_DIR)) {
+                fs::remove_all(config::CACHE_DIR);
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "  Warning: Failed to remove registry/cache: " << e.what() << std::endl;
+        }
+    }
 
     std::cout << "✓ Uninstalled " << name << std::endl;
 

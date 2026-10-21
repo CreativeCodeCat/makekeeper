@@ -46,6 +46,7 @@ uninstall:
 	$(RM) -f "$(DESTDIR)$(DESKTOPDIR)/$(DESKTOPFILE)"
 	$(RM) -f "$(DESTDIR)$(ICONDIR)/$(ICONFILE)"
 	$(RM) -f "$(DESTDIR)$(ICONSVGDIR)/$(ICONSVGFILE)"
+	$(RM) -rf /var/lib/makekeeper
 
 clean:
 	rm -rf build
