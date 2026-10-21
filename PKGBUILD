@@ -6,8 +6,8 @@ pkgdesc="A safer installer for Makefile-based Linux applications"
 arch=('x86_64')
 url="https://github.com/CreativeCodeCat/makekeeper"
 license=('GPL-3.0')
-depends=()
-makedepends=('rust' 'cargo' 'git')
+depends=('qt6-base' 'qt6-network' 'libgit2' 'curl' 'nlohmann-json')
+makedepends=('cmake' 'git')
 options=('strip')
 
 source=("git+https://github.com/CreativeCodeCat/makekeeper.git")
@@ -15,20 +15,36 @@ sha256sums=('SKIP')
 
 build() {
     cd "$srcdir/$pkgname"
-    cargo build --release
+    mkdir -p build
+    cd build
+    cmake ..
+    make
 }
 
 check() {
     cd "$srcdir/$pkgname"
-    cargo test --release
+    cd build
+    ctest --output-on-failure
 }
 
 package() {
     cd "$srcdir/$pkgname"
 
-    install -Dm755 "target/release/makekeeper" \
+    install -Dm755 "build/makekeeper" \
         "$pkgdir/usr/bin/makekeeper"
 
     install -Dm644 "makekeeper.1" \
         "$pkgdir/usr/share/man/man1/makekeeper.1"
+
+    install -Dm644 "makekeeper.fish" \
+        "$pkgdir/usr/share/fish/vendor_completions.d/makekeeper.fish"
+
+    install -Dm644 "makekeeper.desktop" \
+        "$pkgdir/usr/share/applications/makekeeper.desktop"
+
+    install -Dm644 "makekeeper-128.png" \
+        "$pkgdir/usr/share/icons/hicolor/128x128/apps/makekeeper-128.png"
+
+    install -Dm644 "makekeeper.svg" \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/makekeeper.svg"
 }
