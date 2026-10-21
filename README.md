@@ -26,6 +26,11 @@ cargo build --release
 make install
 ```
 
+This installs:
+- The binary to `/usr/local/bin/makekeeper`
+- The man page to `/usr/local/share/man/man1/makekeeper.1`
+- Fish shell completions to `/usr/share/fish/vendor_completions.d/makekeeper.fish`
+
 Note: makekeeper automatically uses pkexec for operations requiring root privileges.
 
 ## Usage
