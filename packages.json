@@ -1,78 +1,134 @@
 {
-  "version": "1.0.7",
-  "packages": [
-    {
-      "name": "makekeeper",
-      "url": "https://github.com/CreativeCodeCat/makekeeper",
-      "description": "Safer installer for Makefile-based Linux applications",
-      "category": "system"
-    },
-    {
-      "name": "neofetch",
-      "url": "https://github.com/dylanaraps/neofetch.git",
-      "description": "A command-line system information tool",
-      "category": "system"
-    },
-    {
-      "name": "st",
-      "url": "https://git.suckless.org/st",
-      "description": "Simple terminal for X",
-      "category": "terminal"
-    },
-    {
-      "name": "dwm",
-      "url": "https://git.suckless.org/dwm",
-      "description": "Dynamic window manager for X",
-      "category": "window-manager"
-    },
-    {
-      "name": "slstatus",
-      "url": "https://git.suckless.org/slstatus",
-      "description": "Status monitor for window managers",
-      "category": "system"
-    },
-    {
-      "name": "slock",
-      "url": "https://git.suckless.org/slock",
-      "description": "Simple X screen locker",
-      "category": "system"
-    },
-    {
-      "name": "dmenu",
-      "url": "https://git.suckless.org/dmenu",
-      "description": "Dynamic menu for X",
-      "category": "menu"
-    },
-    {
-      "name": "tabbed",
-      "url": "https://git.suckless.org/tabbed",
-      "description": "Generic tabbed interface",
-      "category": "utility"
-    },
-    {
-      "name": "nsxiv",
-      "url": "https://codeberg.org/nsxiv/nsxiv.git",
-      "description": "Simple X image viewer",
-      "category": "image"
-    },
-    {
-      "name": "youtube-dl",
-      "url": "https://github.com/ytdl-org/youtube-dl.git",
-      "description": "Video downloader",
-      "category": "media"
-    },
-    {
-      "name": "fd",
-      "url": "https://github.com/sharkdp/fd.git",
-      "description": "Fast file finder",
-      "category": "utility"
-    },
-    {
-      "name": "fastfetch",
-      "url": "https://github.com/fastfetch-cli/fastfetch.git",
-      "description": "A fast, feature-rich system information tool",
-      "category": "system",
-      "build_flags": ["-DENABLE_VULKAN=OFF"]
-    }
-  ]
+    "version": "1.0.8",
+    "packages": [
+        {
+            "name": "bfetch",
+            "url": "https://github.com/CreativeCodeCat/bfetch.git",
+            "description": "A fast, highly customizable system info script",
+            "category": "system"
+        },
+        {
+            "name": "btrfs-snapshots",
+            "url": "https://github.com/CreativeCodeCat/btrfs-snapshots.git",
+            "description": "Btrfs backup and restore script",
+            "category": "system"
+        },
+        {
+            "name": "dmenu",
+            "url": "https://git.suckless.org/dmenu",
+            "description": "Dynamic menu for X",
+            "category": "menu"
+        },
+        {
+            "name": "dwm",
+            "url": "https://git.suckless.org/dwm",
+            "description": "Dynamic window manager for X",
+            "category": "window-manager"
+        },
+        {
+            "name": "fastfetch",
+            "url": "https://github.com/fastfetch-cli/fastfetch.git",
+            "description": "A fast, feature-rich system information tool",
+            "category": "system",
+            "build_flags": [
+                "-DENABLE_VULKAN=OFF"
+            ]
+        },
+        {
+            "name": "fd",
+            "url": "https://github.com/sharkdp/fd.git",
+            "description": "Fast file finder",
+            "category": "utility"
+        },
+        {
+            "name": "makekeeper",
+            "url": "https://github.com/CreativeCodeCat/makekeeper",
+            "description": "Safer installer for Makefile-based Linux applications",
+            "category": "system"
+        },
+        {
+            "name": "neofetch",
+            "url": "https://github.com/dylanaraps/neofetch.git",
+            "description": "A command-line system information tool",
+            "category": "system"
+        },
+        {
+            "name": "nsxiv",
+            "url": "https://codeberg.org/nsxiv/nsxiv.git",
+            "description": "Simple X image viewer",
+            "category": "image"
+        },
+        {
+            "name": "proctl",
+            "url": "https://github.com/CreativeCodeCat/proctl.git",
+            "description": "Manage and switch between templated licenses",
+            "category": "utility"
+        },
+        {
+            "name": "shellfetch",
+            "url": "https://github.com/CreativeCodeCat/shellfetch.git",
+            "description": "Shell system information fetcher",
+            "category": "system"
+        },
+        {
+            "name": "slock",
+            "url": "https://git.suckless.org/slock",
+            "description": "Simple X screen locker",
+            "category": "system"
+        },
+        {
+            "name": "slstatus",
+            "url": "https://git.suckless.org/slstatus",
+            "description": "Status monitor for window managers",
+            "category": "system"
+        },
+        {
+            "name": "st",
+            "url": "https://git.suckless.org/st",
+            "description": "Simple terminal for X",
+            "category": "terminal"
+        },
+        {
+            "name": "tabbed",
+            "url": "https://git.suckless.org/tabbed",
+            "description": "Generic tabbed interface",
+            "category": "utility"
+        },
+        {
+            "name": "tbsm",
+            "url": "https://github.com/CreativeCodeCat/tbsm.git",
+            "description": "Text-based boot selection menu for desktop environments",
+            "category": "menu"
+        },
+        {
+            "name": "tree",
+            "url": "https://github.com/Old-Man-Programmer/tree.git",
+            "description": "Display directories as a tree",
+            "category": "utility"
+        },
+        {
+            "name": "xfs-snapshots",
+            "url": "https://github.com/CreativeCodeCat/xfs-snapshots.git",
+            "description": "XFS backup and restore script",
+            "category": "system"
+        },
+        {
+            "name": "xmenu",
+            "url": "https://github.com/CreativeCodeCat/xmenu.git",
+            "description": "X11 menu utility driven by stdin or icons",
+            "category": "menu"
+        },
+        {
+            "name": "xroot",
+            "url": "https://github.com/CreativeCodeCat/xroot.git",
+            "description": "Run a command by clicking the X root window",
+            "category": "utility"
+        },
+        {
+            "name": "youtube-dl",
+            "url": "https://github.com/ytdl-org/youtube-dl.git",
+            "description": "Video downloader",
+            "category": "media"
+        }
+    ]
 }
