@@ -86,6 +86,57 @@ jobs:
         name: ubuntu-package
         path: releases/*.deb
 
+  build-appimage:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake pkg-config qt6-base-dev qt6-base-dev-tools libgit2-dev libcurl4-openssl-dev nlohmann-json3-dev
+
+    - name: Build release
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --parallel
+
+    - name: Create .AppImage
+      env:
+        # Runners have no FUSE, so let the linuxdeploy AppImages extract themselves
+        APPIMAGE_EXTRACT_AND_RUN: 1
+        QMAKE: /usr/lib/qt6/bin/qmake
+      run: |
+        VERSION=$(grep -oP 'project\(makekeeper VERSION \K[0-9.]+' CMakeLists.txt)
+        make install DESTDIR="$PWD/AppDir" PREFIX=/usr FISHDIR=/usr/share/fish/vendor_completions.d
+
+        # Pinned releases; update the tag and checksum together when upgrading
+        wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
+        wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-qt-x86_64.AppImage
+        sha256sum -c - <<EOF
+        c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d  linuxdeploy-x86_64.AppImage
+        15106be885c1c48a021198e7e1e9a48ce9d02a86dd0a1848f00bdbf3c1c92724  linuxdeploy-plugin-qt-x86_64.AppImage
+        EOF
+        chmod +x linuxdeploy-*.AppImage
+
+        export LINUXDEPLOY_OUTPUT_VERSION="$VERSION"
+        ./linuxdeploy-x86_64.AppImage --appdir AppDir \
+          --desktop-file makekeeper.desktop \
+          --icon-file makekeeper.svg \
+          --plugin qt \
+          --output appimage
+
+        mkdir -p releases
+        mv MakeKeeper-*.AppImage releases/
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: appimage-package
+        path: releases/*.AppImage
+
   build-fedora:
     runs-on: ubuntu-latest
     container: fedora:latest
@@ -144,7 +195,7 @@ jobs:
         path: releases/**/*.rpm
 
   release:
-    needs: [build-arch, build-ubuntu, build-fedora]
+    needs: [build-arch, build-ubuntu, build-appimage, build-fedora]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -160,7 +211,7 @@ jobs:
 
     - name: Move packages to releases folder
       run: |
-        find releases -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.pkg.tar.zst" \) -exec mv {} releases/ \;
+        find releases -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.pkg.tar.zst" -o -name "*.AppImage" \) -exec mv {} releases/ \;
         find releases -type d -empty -delete
 
     - name: Upload packages to GitHub release
@@ -169,8 +220,8 @@ jobs:
         GH_TOKEN: ${{ github.token }}
       run: |
         if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
-          gh release upload "$GITHUB_REF_NAME" releases/*.deb releases/*.rpm releases/*.pkg.tar.zst --clobber
+          gh release upload "$GITHUB_REF_NAME" releases/*.deb releases/*.rpm releases/*.pkg.tar.zst releases/*.AppImage --clobber
         else
-          gh release create "$GITHUB_REF_NAME" releases/*.deb releases/*.rpm releases/*.pkg.tar.zst \
+          gh release create "$GITHUB_REF_NAME" releases/*.deb releases/*.rpm releases/*.pkg.tar.zst releases/*.AppImage \
             --title "$GITHUB_REF_NAME" --generate-notes
         fi
