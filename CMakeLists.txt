@@ -56,6 +56,7 @@ set(SOURCES
     src/commands/info.cpp
     src/gui/gui.cpp
     src/gui/window.cpp
+    src/gui/theme.cpp
     src/gui/views/base.cpp
     src/gui/views/overview.cpp
     src/gui/views/packages.cpp
@@ -78,6 +79,7 @@ set(HEADERS
     src/commands/fetch.h
     src/gui/gui.h
     src/gui/window.h
+    src/gui/theme.h
 )
 
 # Create executable

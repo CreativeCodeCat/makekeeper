@@ -1,4 +1,5 @@
 #include "registry.h"
+#include "../theme.h"
 #include "../../config.h"
 #include "../../registry.h"
 #include <QVBoxLayout>
@@ -50,11 +51,12 @@ void RegistryView::setup_ui() {
         "QTableWidget { background-color: palette(base); color: palette(text); border: 1px solid palette(mid); border-radius: 4px; }"
         "QTableWidget::item { padding: 4px; border: none; }"
         "QTableWidget::item:selected { background-color: palette(highlight); color: palette(highlighted-text); }"
-        "QHeaderView::section { background-color: palette(window); color: palette(text-disabled); padding: 6px 8px; border: none; border-bottom: 1px solid palette(mid); font-weight: bold; font-size: 11px; }"
+        "QHeaderView::section { background-color: palette(window); color: palette(window-text); padding: 6px 8px; border: none; border-bottom: 1px solid palette(mid); font-weight: bold; font-size: 11px; }"
     );
     registry_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
     registry_table_->setSelectionMode(QAbstractItemView::SingleSelection);
     registry_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    theme::remove_focus_frame(registry_table_);
     layout->addWidget(registry_table_);
 
     // Terminal logs
@@ -69,7 +71,7 @@ void RegistryView::setup_ui() {
     terminal_panel_->setReadOnly(true);
     terminal_panel_->setFrameStyle(QFrame::NoFrame);
     terminal_panel_->setStyleSheet(
-        "QTextEdit { background-color: palette(base); color: #66ff66; font-family: 'Consolas', 'Monospace'; font-size: 11px; border: none; padding: 10px; outline: none; }"
+        "QTextEdit { background-color: palette(base); color: palette(text); font-family: 'Consolas', 'Monospace'; font-size: 11px; border: none; padding: 10px; outline: none; }"
         "QTextEdit:hover { border: none; }"
         "QTextEdit:focus { border: none; }"
     );

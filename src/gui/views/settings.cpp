@@ -1,6 +1,7 @@
 #include "settings.h"
 #include "../../config.h"
 #include "../../utils.h"
+#include "../theme.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -10,6 +11,7 @@
 #include <QPushButton>
 #include <QFileDialog>
 #include <QTabWidget>
+#include <QTabBar>
 #include <QWidget>
 #include <QSettings>
 #include <QDir>
@@ -35,10 +37,13 @@ void SettingsView::setup_ui() {
     QTabWidget* tab_widget = new QTabWidget(this);
     tab_widget->setStyleSheet(
         "QTabWidget::pane { border: none; background-color: transparent; }"
-        "QTabBar::tab { background-color: transparent; color: palette(text-disabled); padding: 10px 20px; margin-right: 2px; font-size: 13px; border: none; }"
+        "QTabBar::tab { background-color: transparent; color: palette(window-text); padding: 10px 20px; margin-right: 2px; font-size: 13px; border: none; }"
         "QTabBar::tab:selected { color: palette(highlight); border-bottom: 2px solid palette(highlight); }"
         "QTabBar::tab:hover { color: palette(text); }"
     );
+    // The underline already marks the active tab; without this, styles such as Union and Breeze
+    // also draw a focus outline over its label. Ctrl+Tab and Ctrl+PgUp/PgDn still switch tabs
+    tab_widget->tabBar()->setFocusPolicy(Qt::NoFocus);
 
     // Paths tab
     QWidget* paths_tab = new QWidget();
@@ -52,7 +57,7 @@ void SettingsView::setup_ui() {
 
     QLineEdit* cache_edit = new QLineEdit(QString::fromStdString(config::CACHE_DIR), paths_tab);
     cache_edit->setReadOnly(true);
-    cache_edit->setStyleSheet("QLineEdit { background-color: palette(base); color: palette(text); border: 1px solid #444444; padding: 8px 10px; font-size: 13px; }");
+    cache_edit->setStyleSheet("QLineEdit { background-color: palette(base); color: palette(text); border: 1px solid palette(mid); padding: 8px 10px; font-size: 13px; }");
     paths_layout->addWidget(cache_edit);
 
     QLabel* registry_label = new QLabel("Registry File:", paths_tab);
@@ -61,7 +66,7 @@ void SettingsView::setup_ui() {
 
     QLineEdit* registry_edit = new QLineEdit(QString::fromStdString(config::REGISTRY_FILE), paths_tab);
     registry_edit->setReadOnly(true);
-    registry_edit->setStyleSheet("QLineEdit { background-color: palette(base); color: palette(text); border: 1px solid #444444; padding: 8px 10px; font-size: 13px; }");
+    registry_edit->setStyleSheet("QLineEdit { background-color: palette(base); color: palette(text); border: 1px solid palette(mid); padding: 8px 10px; font-size: 13px; }");
     paths_layout->addWidget(registry_edit);
 
     QLabel* install_label = new QLabel("Install Directory:", paths_tab);
@@ -70,7 +75,7 @@ void SettingsView::setup_ui() {
 
     QLineEdit* install_edit = new QLineEdit("/usr/local", paths_tab);
     install_edit->setReadOnly(true);
-    install_edit->setStyleSheet("QLineEdit { background-color: palette(base); color: palette(text); border: 1px solid #444444; padding: 8px 10px; font-size: 13px; }");
+    install_edit->setStyleSheet("QLineEdit { background-color: palette(base); color: palette(text); border: 1px solid palette(mid); padding: 8px 10px; font-size: 13px; }");
     paths_layout->addWidget(install_edit);
 
     paths_layout->addStretch();
@@ -111,7 +116,8 @@ void SettingsView::setup_ui() {
     about_layout->addWidget(version_label);
 
     QLabel* desc_label = new QLabel("Safer installer for Makefile-based Linux applications", about_tab);
-    desc_label->setStyleSheet("color: palette(text-disabled); font-size: 13px;");
+    desc_label->setStyleSheet("font-size: 13px;");
+    theme::set_secondary(desc_label);
     about_layout->addWidget(desc_label);
 
     about_layout->addStretch();

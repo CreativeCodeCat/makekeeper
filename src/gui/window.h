@@ -20,7 +20,6 @@ public:
     ~MakekeeperWindow();
 
 private:
-    void apply_dark_theme();
     void setup_ui();
     void on_nav_clicked(int index);
 

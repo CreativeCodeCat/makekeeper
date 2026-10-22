@@ -1,12 +1,13 @@
 #include "window.h"
 #include "../config.h"
+#include "theme.h"
 #include <QApplication>
-#include <QStyleFactory>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPalette>
 #include <QFrame>
+#include <QShortcut>
+#include <QKeySequence>
 
 namespace makekeeper {
 namespace gui {
@@ -15,7 +16,7 @@ MakekeeperWindow::MakekeeperWindow(QWidget* parent) : QMainWindow(parent) {
     setWindowTitle(QString("MakeKeeper | Package Manager %1").arg(config::VERSION));
     setFixedSize(1100, 650);
 
-    apply_dark_theme();
+    // No palette or style is set here: the window follows the user's Qt 6 theme
     setup_ui();
 }
 
@@ -29,56 +30,6 @@ MakekeeperWindow::~MakekeeperWindow() {
     delete nav_settings_;
 }
 
-void MakekeeperWindow::apply_dark_theme() {
-    QPalette breeze_dark;
-
-    // Window backgrounds
-    breeze_dark.setColor(QPalette::Window, QColor("#232629"));
-    breeze_dark.setColor(QPalette::WindowText, QColor("#FCFCFC"));
-
-    // Input fields and text editors
-    breeze_dark.setColor(QPalette::Base, QColor("#1B1E20"));
-    breeze_dark.setColor(QPalette::AlternateBase, QColor("#272B2F"));
-    breeze_dark.setColor(QPalette::Text, QColor("#FCFCFC"));
-
-    // Buttons
-    breeze_dark.setColor(QPalette::Button, QColor("#31363B"));
-    breeze_dark.setColor(QPalette::ButtonText, QColor("#FCFCFC"));
-
-    // Breeze blue accent
-    breeze_dark.setColor(QPalette::Highlight, QColor("#3DAEE9"));
-    breeze_dark.setColor(QPalette::HighlightedText, QColor("#FCFCFC"));
-
-    // Tooltips
-    breeze_dark.setColor(QPalette::ToolTipBase, QColor("#31363B"));
-    breeze_dark.setColor(QPalette::ToolTipText, QColor("#FCFCFC"));
-
-    // Disabled widgets
-    breeze_dark.setColor(QPalette::Disabled, QPalette::WindowText,
-                         QColor("#7F858B"));
-    breeze_dark.setColor(QPalette::Disabled, QPalette::Text,
-                         QColor("#7F858B"));
-    breeze_dark.setColor(QPalette::Disabled, QPalette::ButtonText,
-                         QColor("#7F858B"));
-
-    // Links
-    breeze_dark.setColor(QPalette::Link, QColor("#3DAEE9"));
-    breeze_dark.setColor(QPalette::LinkVisited, QColor("#9B59B6"));
-
-    // Mid color for borders
-    breeze_dark.setColor(QPalette::Mid, QColor("#353535"));
-
-    QApplication::setPalette(breeze_dark);
-
-    QStyle *style = QStyleFactory::create("Breeze");
-
-    if (style) {
-        QApplication::setStyle(style);
-    } else {
-        qWarning() << "Breeze style is not available";
-    }
-}
-
 void MakekeeperWindow::setup_ui() {
     QWidget* central_widget = new QWidget(this);
     setCentralWidget(central_widget);
@@ -90,7 +41,9 @@ void MakekeeperWindow::setup_ui() {
     // Sidebar
     QWidget* sidebar = new QWidget(this);
     sidebar->setFixedWidth(140);
-    sidebar->setStyleSheet("background-color: palette(window); border-right: 1px solid palette(mid);");
+    sidebar->setObjectName("sidebar");
+    sidebar->setAttribute(Qt::WA_StyledBackground, true);
+    sidebar->setStyleSheet("QWidget#sidebar { background-color: palette(window); border-right: 1px solid palette(mid); }");
 
     QVBoxLayout* sidebar_layout = new QVBoxLayout(sidebar);
     sidebar_layout->setContentsMargins(0, 0, 0, 0);
@@ -147,6 +100,16 @@ void MakekeeperWindow::setup_ui() {
     QObject::connect(nav_settings_, &QPushButton::clicked, [this]() { on_nav_clicked(4); });
     sidebar_layout->addWidget(nav_settings_);
 
+    // The checked highlight already marks the current page; without this, styles such as Union
+    // also draw a focus outline inside it after a click. Ctrl+1 to Ctrl+5 switch pages instead
+    QPushButton* nav_buttons[] = {nav_overview_, nav_packages_, nav_updates_, nav_registry_, nav_settings_};
+    for (int i = 0; i < 5; i++) {
+        nav_buttons[i]->setFocusPolicy(Qt::NoFocus);
+        nav_buttons[i]->setToolTip(QString("%1 (Ctrl+%2)").arg(nav_buttons[i]->text()).arg(i + 1));
+        QShortcut* shortcut = new QShortcut(QKeySequence(QString("Ctrl+%1").arg(i + 1)), this);
+        QObject::connect(shortcut, &QShortcut::activated, this, [this, i]() { on_nav_clicked(i); });
+    }
+
     sidebar_layout->addStretch();
     main_layout->addWidget(sidebar);
 
@@ -171,22 +134,25 @@ void MakekeeperWindow::setup_ui() {
 
     // Status bar
     QFrame* status_bar = new QFrame(this);
-    status_bar->setStyleSheet("background-color: palette(window); border-top: 1px solid palette(mid);");
+    status_bar->setObjectName("statusBar");
+    status_bar->setStyleSheet("QFrame#statusBar { background-color: palette(window); border-top: 1px solid palette(mid); }");
     QHBoxLayout* status_layout = new QHBoxLayout(status_bar);
     status_layout->setContentsMargins(15, 8, 15, 8);
     
     QLabel* status_icon = new QLabel("●", this);
-    status_icon->setStyleSheet("color: #66cc66; font-size: 10px;");
+    status_icon->setStyleSheet(QString("color: %1; font-size: 10px;").arg(theme::success_color().name()));
     status_layout->addWidget(status_icon);
     
     QLabel* status_label = new QLabel("Connected to registry", this);
-    status_label->setStyleSheet("color: palette(text-disabled); font-size: 11px;");
+    status_label->setStyleSheet("font-size: 11px;");
+    theme::set_secondary(status_label);
     status_layout->addWidget(status_label);
     
     status_layout->addStretch();
     
-    QLabel* version_label = new QLabel("0.1.0", this);
-    version_label->setStyleSheet("color: palette(text-disabled); font-size: 10px; font-weight: 500;");
+    QLabel* version_label = new QLabel(config::VERSION, this);
+    version_label->setStyleSheet("font-size: 10px; font-weight: 500;");
+    theme::set_secondary(version_label);
     status_layout->addWidget(version_label);
 
     main_content_layout->addWidget(status_bar);

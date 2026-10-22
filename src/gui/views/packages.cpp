@@ -1,4 +1,5 @@
 #include "packages.h"
+#include "../theme.h"
 #include "../../config.h"
 #include "../../registry.h"
 #include <QVBoxLayout>
@@ -39,8 +40,8 @@ void PackagesView::setup_ui() {
     search_edit_ = new QLineEdit(this);
     search_edit_->setPlaceholderText("Search packages...");
     search_edit_->setStyleSheet(
-        "QLineEdit { background-color: #353535; color: #e0e0e0; border: 1px solid #444444; border-radius: 4px; padding: 10px 15px; font-size: 12px; }"
-        "QLineEdit:focus { border: 1px solid #2a82da; }"
+        "QLineEdit { background-color: palette(base); color: palette(text); border: 1px solid palette(mid); border-radius: 4px; padding: 10px 15px; font-size: 12px; }"
+        "QLineEdit:focus { border: 1px solid palette(highlight); }"
     );
     QObject::connect(search_edit_, &QLineEdit::textChanged, [this](const QString& text) {
         on_search_changed(text);
@@ -74,13 +75,14 @@ void PackagesView::setup_ui() {
         "QTableWidget { background-color: palette(base); color: palette(text); border: 1px solid palette(mid); border-radius: 4px; }"
         "QTableWidget::item { padding: 4px; border: none; }"
         "QTableWidget::item:selected { background-color: palette(highlight); color: palette(highlighted-text); }"
-        "QHeaderView::section { background-color: palette(window); color: palette(text-disabled); padding: 6px 8px; border: none; border-bottom: 1px solid palette(mid); font-weight: bold; font-size: 11px; }"
+        "QHeaderView::section { background-color: palette(window); color: palette(window-text); padding: 6px 8px; border: none; border-bottom: 1px solid palette(mid); font-weight: bold; font-size: 11px; }"
         "QHeaderView::section::indicator { width: 0px; border: none; background: none; }"
         "QHeaderView::up-arrow, QHeaderView::down-arrow { width: 0px; height: 0px; border: none; background: none; image: none; }"
     );
     package_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
     package_table_->setSelectionMode(QAbstractItemView::SingleSelection);
     package_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    theme::remove_focus_frame(package_table_);
     package_table_->setSortingEnabled(true);
     package_table_->sortByColumn(0, Qt::AscendingOrder);
     package_table_->horizontalHeader()->setSectionsClickable(false);
@@ -124,7 +126,7 @@ void PackagesView::setup_ui() {
     terminal_panel_->setReadOnly(true);
     terminal_panel_->setFrameStyle(QFrame::NoFrame);
     terminal_panel_->setStyleSheet(
-        "QTextEdit { background-color: palette(base); color: #66ff66; font-family: 'Consolas', 'Monospace'; font-size: 11px; border: none; padding: 10px; outline: none; }"
+        "QTextEdit { background-color: palette(base); color: palette(text); font-family: 'Consolas', 'Monospace'; font-size: 11px; border: none; padding: 10px; outline: none; }"
         "QTextEdit:hover { border: none; }"
         "QTextEdit:focus { border: none; }"
     );
@@ -179,9 +181,9 @@ void PackagesView::load_packages() {
         QTableWidgetItem* status_item = new QTableWidgetItem(is_installed ? "Up to date" : "Not installed");
         status_item->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         if (is_installed) {
-            status_item->setForeground(QColor("#66cc66")); // Green
+            status_item->setForeground(theme::success_color());
         } else {
-            status_item->setForeground(QColor("#7F858B")); // Gray
+            status_item->setForeground(palette().color(QPalette::PlaceholderText));
         }
         package_table_->setItem(i, 2, status_item);
 
@@ -219,39 +221,45 @@ void PackagesView::on_package_selected() {
     QString url = package_table_->item(row, 0)->data(Qt::UserRole + 1).toString();
     bool is_installed = installed_names_.contains(name);
 
-    QString status_color = is_installed ? "#66cc66" : "#cc9966";
+    // Rich text can't use palette roles, so take every colour from the active theme
+    QString text_color = theme::color_name(QPalette::Text);
+    QString secondary_color = theme::color_name(QPalette::PlaceholderText);
+    QString link_color = theme::color_name(QPalette::Link);
+    QString status_color = (is_installed ? theme::success_color() : theme::warning_color()).name();
     QString status_text = is_installed ? "Installed" : "Not installed";
 
     QString action_buttons;
     if (is_installed) {
         action_buttons = QString(
-            "<button style='background-color: #dc3545; color: white; padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;'>Uninstall</button>"
+            "<button style='background-color: " + theme::error_color().name() + "; color: white; padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;'>Uninstall</button>"
         );
     } else {
         action_buttons = QString(
-            "<button style='background-color: #28a745; color: white; padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;'>Install</button>"
+            "<button style='background-color: " + theme::success_color().name() + "; color: white; padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;'>Install</button>"
         );
     }
 
     QString details = QString(
         "<div style='padding: 5px;'>"
-        "<h2 style='color: #ffffff; margin: 0 0 8px 0; font-size: 18px; font-weight: 600;'>%1 <span style='font-size: 13px; color: #888888; font-weight: 400; margin-left: 8px;'>%2</span></h2>"
-        "<div style='background-color: #353535; padding: 8px 12px; border-radius: 4px; margin: 12px 0; color: #cccccc; font-size: 12px; line-height: 1.4;'>%3</div>"
+        "<h2 style='color: %8; margin: 0 0 8px 0; font-size: 18px; font-weight: 600;'>%1 <span style='font-size: 13px; color: %9; font-weight: 400; margin-left: 8px;'>%2</span></h2>"
+        "<div style='background-color: %11; padding: 8px 12px; border-radius: 4px; margin: 12px 0; color: %8; font-size: 12px; line-height: 1.4;'>%3</div>"
         "<div style='margin: 15px 0;'>"
-        "<div style='color: #888888; font-size: 11px; margin-bottom: 4px;'>Repository</div>"
-        "<div style='color: #2a82da; font-size: 12px;'><a href='%4' style='color: #2a82da; text-decoration: none;'>%4</a></div>"
+        "<div style='color: %9; font-size: 11px; margin-bottom: 4px;'>Repository</div>"
+        "<div style='color: %10; font-size: 12px;'><a href='%4' style='color: %10; text-decoration: none;'>%4</a></div>"
         "</div>"
         "<div style='margin: 12px 0;'>"
-        "<div style='color: #888888; font-size: 11px; margin-bottom: 4px;'>Status</div>"
+        "<div style='color: %9; font-size: 11px; margin-bottom: 4px;'>Status</div>"
         "<div style='color: %5; font-size: 12px; font-weight: 500;'>%6</div>"
         "</div>"
         "<div style='margin: 20px 0 10px 0;'>"
-        "<div style='color: #888888; font-size: 11px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;'>Actions</div>"
+        "<div style='color: %9; font-size: 11px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;'>Actions</div>"
         "<div style='display: flex; flex-direction: column; gap: 8px;'>%7</div>"
-        "<button style='background-color: #3a3a3a; color: #e0e0e0; padding: 8px 12px; border: 1px solid #444444; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 8px;'>Documentation</button>"
+        "<button style='background-color: %12; color: %13; padding: 8px 12px; border: 1px solid %14; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 8px;'>Documentation</button>"
         "</div>"
         "</div>"
-    ).arg(name, version, description, url, status_color, status_text, action_buttons);
+    ).arg(name, version, description, url, status_color, status_text, action_buttons, text_color, secondary_color)
+     .arg(link_color, theme::color_name(QPalette::AlternateBase), theme::color_name(QPalette::Button),
+          theme::color_name(QPalette::ButtonText), theme::color_name(QPalette::Mid));
 
     details_panel_->setHtml(details);
     terminal_panel_->append(QString("> Selected: %1").arg(name));
