@@ -1,0 +1,5 @@
+# GitHub Pages builds this branch with Jekyll, which shows README.md as the home page.
+# The title matches README.md's heading, so the theme doesn't add a second "MakeKeeper" header
+title: MakeKeeper
+description: A safer installer and manager for Makefile-based Linux applications
+theme: jekyll-theme-primer
