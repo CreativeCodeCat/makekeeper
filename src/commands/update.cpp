@@ -66,20 +66,42 @@ static UpdateResult update_package(registry::Record record, registry::Registry& 
 
     // Rebuild as the user
     std::cout << indent << "Rebuilding..." << std::endl;
-    if (utils::exec_as_user("make", {"-C", record.source_dir, "clean"}) != 0) {
-        std::cerr << indent << "Error: Clean failed." << std::endl;
-        return UpdateResult::Failed;
-    }
-    if (utils::exec_as_user("make", {"-C", record.source_dir}) != 0) {
-        std::cerr << indent << "Error: Build failed." << std::endl;
-        return UpdateResult::Failed;
-    }
+    if (record.build_system == "cmake") {
+        std::string build_dir = record.source_dir + "/build";
+        // CMake has no standard clean target guarantee; start from a fresh configure instead
+        std::error_code ec;
+        fs::remove_all(build_dir, ec);
+        if (utils::exec_as_user("cmake", {"-S", record.source_dir, "-B", build_dir, "-DCMAKE_BUILD_TYPE=Release"}) != 0) {
+            std::cerr << indent << "Error: CMake configure failed." << std::endl;
+            return UpdateResult::Failed;
+        }
+        if (utils::exec_as_user("cmake", {"--build", build_dir}) != 0) {
+            std::cerr << indent << "Error: Build failed." << std::endl;
+            return UpdateResult::Failed;
+        }
 
-    // Reinstall with privilege
-    std::cout << indent << "Reinstalling..." << std::endl;
-    if (utils::run_helper({"make", record.source_dir, "install"}) != 0) {
-        std::cerr << indent << "Error: Install failed." << std::endl;
-        return UpdateResult::Failed;
+        // Reinstall with privilege
+        std::cout << indent << "Reinstalling..." << std::endl;
+        if (utils::run_helper({"cmake", build_dir}) != 0) {
+            std::cerr << indent << "Error: Install failed." << std::endl;
+            return UpdateResult::Failed;
+        }
+    } else {
+        if (utils::exec_as_user("make", {"-C", record.source_dir, "clean"}) != 0) {
+            std::cerr << indent << "Error: Clean failed." << std::endl;
+            return UpdateResult::Failed;
+        }
+        if (utils::exec_as_user("make", {"-C", record.source_dir}) != 0) {
+            std::cerr << indent << "Error: Build failed." << std::endl;
+            return UpdateResult::Failed;
+        }
+
+        // Reinstall with privilege
+        std::cout << indent << "Reinstalling..." << std::endl;
+        if (utils::run_helper({"make", record.source_dir, "install"}) != 0) {
+            std::cerr << indent << "Error: Install failed." << std::endl;
+            return UpdateResult::Failed;
+        }
     }
 
     // Update commit hash

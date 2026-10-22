@@ -16,6 +16,7 @@ struct Record {
     std::string install_date;
     std::vector<std::string> files;
     std::vector<std::string> symlinks;
+    std::string build_system = "make";  // "make" or "cmake"
 };
 
 class Registry {

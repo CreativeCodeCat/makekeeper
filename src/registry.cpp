@@ -38,6 +38,7 @@ bool Registry::load() {
             record.install_date = item["install_date"];
             record.files = item["files"].get<std::vector<std::string>>();
             record.symlinks = item["symlinks"].get<std::vector<std::string>>();
+            record.build_system = item.value("build_system", std::string("make"));
             records_.push_back(record);
         }
         return true;
@@ -60,6 +61,7 @@ bool Registry::save() {
             item["install_date"] = record.install_date;
             item["files"] = record.files;
             item["symlinks"] = record.symlinks;
+            item["build_system"] = record.build_system;
             j["records"].push_back(item);
         }
 

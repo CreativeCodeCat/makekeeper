@@ -93,7 +93,7 @@ int uninstall(const std::vector<std::string>& args) {
         summary << std::endl;
         summary << "Package:  " << colors::green << name << colors::reset << std::endl;
         if (has_source) {
-            summary << "Runs:     make uninstall as root" << std::endl;
+            summary << "Runs:     its uninstall step as root" << std::endl;
         }
         if (present.empty()) {
             summary << "Removes:  " << colors::gray << "no tracked files are present" << colors::reset << std::endl;
@@ -116,9 +116,19 @@ int uninstall(const std::vector<std::string>& args) {
 
     std::cout << "Uninstalling " << name << "..." << std::endl;
 
-    // Run make uninstall if source dir exists
+    // Run the project's uninstall step if the source dir exists
     if (has_source) {
-        int result = utils::run_helper({"make", record->source_dir, "uninstall"});
+        int result;
+        if (record->build_system == "cmake") {
+            std::string build_dir = record->source_dir + "/build";
+            // Only try it if CMake actually configured a build here; CMake has no uninstall of
+            // its own, so this only does anything when the project defined its own target
+            result = fs::exists(build_dir + "/CMakeCache.txt")
+                ? utils::run_helper({"cmake", build_dir, "uninstall"})
+                : 1;
+        } else {
+            result = utils::run_helper({"make", record->source_dir, "uninstall"});
+        }
         // pkexec exits with 126 or 127 when permission wasn't given; stop before removing anything
         if (result == 126 || result == 127) {
             std::cerr << "Error: Didn't get permission to uninstall " << name << ". Nothing was removed." << std::endl;

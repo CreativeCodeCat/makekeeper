@@ -51,6 +51,7 @@ int info(const std::vector<std::string>& args) {
     
     std::cout << "URL: " << (record->url.empty() ? "N/A" : record->url) << std::endl;
     std::cout << "Source Directory: " << record->source_dir << std::endl;
+    std::cout << "Build System: " << record->build_system << std::endl;
     
     if (!record->commit_hash.empty()) {
         std::cout << "Commit: " << record->commit_hash << std::endl;

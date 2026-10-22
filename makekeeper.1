@@ -13,19 +13,18 @@ makekeeper \- a safer installer and manager for Makefile-based Linux application
 
 .SH DESCRIPTION
 .B makekeeper
-installs applications that ship with nothing but a Makefile, and keeps a registry
-of everything it installed so packages can be listed, updated and uninstalled later.
+installs applications that ship with nothing but a Makefile or a CMakeLists.txt, and keeps
+a registry of everything it installed so packages can be listed, updated and uninstalled later.
 
 Packages can come from the curated package catalog, a Git URL, or a local directory.
 Git packages are cloned as your user into
 .IR ~/.local/share/makekeeper/sources/<name>/
 and built with
 .BR make (1)
-as your user. Only
-.B make install
-and
-.B make uninstall
-run as root, through a small helper that is authorized with
+or
+.BR cmake (1)
+as your user, depending on whether the project has a Makefile or a CMakeLists.txt. Only the
+install and uninstall steps run as root, through a small helper that is authorized with
 .BR pkexec (1).
 polkit remembers the authorization briefly, so one command asks for your password once.
 
@@ -46,13 +45,17 @@ is cloned, and a
 .I DIR
 is built in place. The project is built with
 .B make
-(skipped when a
+or
+.B cmake
+depending on whether it has a Makefile or a CMakeLists.txt (skipped when a
 .IR build/ ,
 .I target/
 or
 .I bin/
 directory already exists), installed with
-.BR "make install" ,
+.BR "make install"
+or
+.BR "cmake \-\-install" ,
 and recorded in the registry. Before building, it shows the package, its source and what
 will run as root, and asks for confirmation.
 .RS
@@ -72,7 +75,10 @@ Don't ask for confirmation. Required when there is no terminal to ask on, such a
 .TP
 .BI uninstall " NAME" " \fR[\fB\-\-yes\fR]"
 Run the package's
-.BR "make uninstall" ,
+.BR "make uninstall"
+or
+.BR "cmake \-\-build \-\-target uninstall" ,
+whichever build system it uses,
 remove the files and symlinks the registry tracks for it, delete the clone MakeKeeper made,
 and remove it from the registry. Directories you installed from are never deleted.
 It lists what will be removed and asks for confirmation first.
@@ -199,19 +205,24 @@ When set to a non-empty value, disable coloured output. Output is also plain whe
 Override the locations of the sources directory and the settings file.
 
 .SH SECURITY
-A Makefile can run any command, and
-.B make install
-runs as root. Only install projects you trust, and read their Makefile first.
+A Makefile or CMakeLists.txt can run any command, and its install step
+runs as root. Only install projects you trust, and read its build scripts first.
 Builds are not sandboxed. The helper only accepts a fixed set of operations: running
 .BR make ,
 .BR "make install" ,
 .B make uninstall
 or
 .B make clean
-in a project, removing files the registry tracks, and writing MakeKeeper's own state.
+in a project,
+.B "cmake \-\-install"
+or
+.B "cmake \-\-build \-\-target uninstall"
+in a configured CMake build directory, removing files the registry tracks, and writing
+MakeKeeper's own state.
 
 .SH SEE ALSO
 .BR make (1),
+.BR cmake (1),
 .BR git (1),
 .BR pkexec (1)
 

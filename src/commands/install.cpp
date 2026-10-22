@@ -187,12 +187,12 @@ int install(const std::vector<std::string>& args) {
         summary << std::endl;
         summary << "Package:  " << colors::green << name << colors::reset << std::endl;
         summary << "Source:   " << colors::cyan << (url.empty() ? source_dir : url) << colors::reset << std::endl;
-        summary << "Runs:     make, then make install as root" << std::endl;
+        summary << "Runs:     a build, then its install step as root" << std::endl;
         if (registry.exists(name)) {
             summary << "Replaces: the installed " << name << ", removing its tracked files first" << std::endl;
         }
         summary << std::endl;
-        summary << "Only install software you trust: its Makefile runs with root privileges." << std::endl;
+        summary << "Only install software you trust: its build runs with root privileges." << std::endl;
         if (!cli::confirm(summary.str(), "Install " + name + "?")) {
             return 1;
         }
@@ -239,10 +239,10 @@ int install(const std::vector<std::string>& args) {
         }
     }
 
-    // Check for Makefile
-    std::string makefile_path = source_dir + "/Makefile";
-    if (!fs::exists(makefile_path)) {
-        std::cerr << "Error: No Makefile found in " << source_dir << std::endl;
+    // Check for a Makefile or a CMakeLists.txt
+    std::string build_system = utils::detect_build_system(source_dir);
+    if (build_system.empty()) {
+        std::cerr << "Error: No Makefile or CMakeLists.txt found in " << source_dir << std::endl;
         return 1;
     }
 
@@ -252,25 +252,54 @@ int install(const std::vector<std::string>& args) {
         already_built = true;
     }
 
-    // Build only if not already built
+    std::string build_dir = source_dir + "/build";
     int result;
-    if (!already_built) {
-        std::cout << "Building..." << std::endl;
-        result = utils::exec_as_user("make", {"-C", source_dir});
+
+    if (build_system == "cmake") {
+        if (!already_built) {
+            std::cout << "Configuring..." << std::endl;
+            result = utils::exec_as_user("cmake", {"-S", source_dir, "-B", build_dir, "-DCMAKE_BUILD_TYPE=Release"});
+            if (result != 0) {
+                std::cerr << "Error: CMake configure failed." << std::endl;
+                return 1;
+            }
+            std::cout << "Building..." << std::endl;
+            result = utils::exec_as_user("cmake", {"--build", build_dir});
+            if (result != 0) {
+                std::cerr << "Error: Build failed." << std::endl;
+                return 1;
+            }
+        } else {
+            std::cout << "Already built, skipping..." << std::endl;
+        }
+
+        // Install
+        std::cout << "Installing..." << std::endl;
+        result = utils::run_helper({"cmake", build_dir});
         if (result != 0) {
-            std::cerr << "Error: Build failed." << std::endl;
+            std::cerr << "Error: Install failed." << std::endl;
             return 1;
         }
     } else {
-        std::cout << "Already built, skipping..." << std::endl;
-    }
+        // Build only if not already built
+        if (!already_built) {
+            std::cout << "Building..." << std::endl;
+            result = utils::exec_as_user("make", {"-C", source_dir});
+            if (result != 0) {
+                std::cerr << "Error: Build failed." << std::endl;
+                return 1;
+            }
+        } else {
+            std::cout << "Already built, skipping..." << std::endl;
+        }
 
-    // Install
-    std::cout << "Installing..." << std::endl;
-    result = utils::run_helper({"make", source_dir, "install"});
-    if (result != 0) {
-        std::cerr << "Error: Install failed." << std::endl;
-        return 1;
+        // Install
+        std::cout << "Installing..." << std::endl;
+        result = utils::run_helper({"make", source_dir, "install"});
+        if (result != 0) {
+            std::cerr << "Error: Install failed." << std::endl;
+            return 1;
+        }
     }
 
     // Get commit hash and URL if git repo
@@ -300,6 +329,7 @@ int install(const std::vector<std::string>& args) {
     record.source_dir = source_dir;
     record.commit_hash = commit_hash;
     record.install_date = utils::get_timestamp();
+    record.build_system = build_system;
 
     // Track installed files from common locations (add regardless, install succeeded)
     std::string binary_path = std::string(config::BIN_DIR) + "/" + name;

@@ -381,7 +381,7 @@ void PackagesView::on_install_clicked() {
 
     if (installed_names_.contains(selected_name_)) {
         auto answer = QMessageBox::question(this, "Uninstall " + selected_name_,
-            QString("Uninstall %1? This runs its 'make uninstall' and removes the files MakeKeeper tracked for it.").arg(selected_name_));
+            QString("Uninstall %1? This runs its uninstall step and removes the files MakeKeeper tracked for it.").arg(selected_name_));
         if (answer == QMessageBox::Yes) {
             run_command({"uninstall", selected_name_, "--yes"});
         }
@@ -393,7 +393,7 @@ void PackagesView::on_install_clicked() {
     QSettings settings(QString::fromStdString(utils::user_config_dir()) + "/settings.conf", QSettings::IniFormat);
     if (settings.value("confirm_install", true).toBool()) {
         auto answer = QMessageBox::question(this, "Install " + selected_name_,
-            QString("Install %1 from %2?\n\nIts Makefile will run with root privileges, so only install software you trust.")
+            QString("Install %1 from %2?\n\nIts build will run with root privileges, so only install software you trust.")
                 .arg(selected_name_, selected_url_));
         if (answer != QMessageBox::Yes) {
             return;

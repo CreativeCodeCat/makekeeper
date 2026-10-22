@@ -18,9 +18,9 @@ MakeKeeper wraps that workflow. It clones or locates the project, builds and ins
 
 - **One command to install**: install from the package catalog, a Git URL, or a local directory
 - **Package registry**: records the source, Git commit, install date and tracked files for every package
-- **Clean uninstall**: runs the project's `make uninstall`, then removes the tracked files and symlinks
+- **Clean uninstall**: runs the project's `make uninstall` or `cmake --build --target uninstall`, then removes the tracked files and symlinks
 - **Git-aware updates**: pulls, rebuilds and reinstalls packages installed from a Git repository
-- **Package catalog**: sync and search a curated list of Makefile-based applications
+- **Package catalog**: sync and search a curated list of Makefile- and CMake-based applications
 - **Desktop GUI**: browse, install and manage packages from a Qt 6 interface
 - **One password prompt per operation**: a small privileged helper does the root-only steps, authorized once through polkit
 
@@ -120,8 +120,8 @@ The install steps are:
 
 1. **Resolve the source.** Catalog names are looked up in the synced catalog, URLs are cloned as your user into `~/.local/share/makekeeper/sources/<name>`, and directories are used in place.
 2. **Confirm.** MakeKeeper shows the package, its source and what will run as root, and asks before going ahead.
-3. **Build** with `make`, as your user (skipped if a `build/`, `target/` or `bin/` directory already exists).
-4. **Install** with `make install`, as root.
+3. **Build** with `make`, or `cmake` if the project has a `CMakeLists.txt` instead of a `Makefile`, as your user (skipped if a `build/`, `target/` or `bin/` directory already exists).
+4. **Install** with `make install` or `cmake --install`, as root.
 5. **Record** the package, its source and Git commit in the registry.
 
 Without a terminal to ask on, such as in a script, `install` and `uninstall` refuse to continue unless you pass `--yes`.
@@ -166,10 +166,10 @@ The catalog is fetched from <https://creativecodecat.github.io/makekeeper/packag
 ## Security
 
 > [!WARNING]
-> A Makefile can run any command, and MakeKeeper runs `make install` and `make uninstall` as root. Only install projects you trust, and read their Makefile first.
+> A Makefile or CMakeLists.txt can run any command, and MakeKeeper runs its install and uninstall steps as root. Only install projects you trust, and read its build scripts first.
 
 - MakeKeeper itself runs as your user. Only `makekeeper-helper` runs as root, through `pkexec`, so a polkit authentication agent must be running.
-- The helper can only do a fixed set of things: run `make`, `make install`, `make uninstall` or `make clean` in a project, remove files the registry says MakeKeeper installed, and write MakeKeeper's own state in `/var/lib/makekeeper`.
+- The helper can only do a fixed set of things: run `make`, `make install`, `make uninstall` or `make clean` in a project, run `cmake --install` or `cmake --build --target uninstall` in a configured CMake build directory, remove files the registry says MakeKeeper installed, and write MakeKeeper's own state in `/var/lib/makekeeper`.
 - polkit remembers your authorization for a few minutes, so one install or uninstall asks for your password once. The AppImage has no polkit policy installed, so it may ask once per step.
 - Git operations run as your user, so your SSH keys and Git credentials work as usual.
 - Builds are **not** sandboxed.
@@ -189,7 +189,7 @@ The catalog is a JSON file on the `docs` branch. To suggest a package, open a pu
 
 In the same pull request, bump the catalog's top-level `"version"` (for example from `1.0.4` to `1.0.5`). `makekeeper sync` only downloads the catalog again when its version changes.
 
-The repository must have a `Makefile` at its root with `install` (and ideally `uninstall`) targets. The [project site](https://creativecodecat.github.io/makekeeper/#adding-a-package) has the full guide, including what each field means.
+The repository must have a `Makefile` or a `CMakeLists.txt` at its root. A Makefile needs `install` (and ideally `uninstall`) targets; a CMakeLists.txt needs an `install()` rule (CMake has no built-in uninstall, so `uninstall` only works if the project defines its own target). The [project site](https://creativecodecat.github.io/makekeeper/#adding-a-package) has the full guide, including what each field means.
 
 ## Development
 

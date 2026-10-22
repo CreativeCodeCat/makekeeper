@@ -359,6 +359,16 @@ bool clone_source(const std::string& url, const std::string& dir) {
     return exec_as_user("git", {"clone", url, dir}) == 0;
 }
 
+std::string detect_build_system(const std::string& dir) {
+    if (fs::exists(dir + "/Makefile")) {
+        return "make";
+    }
+    if (fs::exists(dir + "/CMakeLists.txt")) {
+        return "cmake";
+    }
+    return "";
+}
+
 int git_update_source(const std::string& dir, const std::string& action) {
     return exec_as_user("git", {"-C", dir, action});
 }

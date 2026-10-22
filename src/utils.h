@@ -46,6 +46,10 @@ int run_helper(const std::vector<std::string>& args, const std::string& input = 
 // Clone a repository as the real user, replacing anything already at dir
 bool clone_source(const std::string& url, const std::string& dir);
 
+// "make" if dir has a Makefile, "cmake" if it has a CMakeLists.txt, "" if it has neither.
+// Checked in that order, so a CMake project with a thin Makefile wrapper keeps using make.
+std::string detect_build_system(const std::string& dir);
+
 // Run git fetch or pull in a package's source directory as the real user
 int git_update_source(const std::string& dir, const std::string& action);
 

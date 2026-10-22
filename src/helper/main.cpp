@@ -139,6 +139,31 @@ int op_make(const std::vector<std::string>& args) {
     return run(command);
 }
 
+// cmake --install <BUILD_DIR>, or cmake --build <BUILD_DIR> --target uninstall, for a directory
+// that CMake has already configured (it isn't one until it has a CMakeCache.txt)
+int op_cmake(const std::vector<std::string>& args) {
+    if (args.empty() || args.size() > 2) {
+        return fail("usage: cmake <BUILD_DIR> [uninstall]");
+    }
+
+    const std::string& dir = args[0];
+    if (!is_plain_absolute(dir) || !fs::is_directory(dir)) {
+        return fail("not a build directory: " + dir);
+    }
+    if (!fs::exists(dir + "/CMakeCache.txt")) {
+        return fail("not a configured CMake build directory: " + dir);
+    }
+
+    if (args.size() == 2) {
+        if (args[1] != "uninstall") {
+            return fail("unsupported cmake target: " + args[1]);
+        }
+        // CMake has no built-in uninstall; this only works if the project defines its own target
+        return run({"cmake", "--build", dir, "--target", "uninstall"});
+    }
+    return run({"cmake", "--install", dir});
+}
+
 // Delete a file or symlink, but only one the registry says MakeKeeper installed
 int op_remove(const std::vector<std::string>& args) {
     if (args.size() != 1) {
@@ -219,6 +244,7 @@ void print_usage() {
     std::cerr << "Operations:" << std::endl;
     std::cerr << "  init                       Create the registry and cache directories" << std::endl;
     std::cerr << "  make <DIR> [TARGET]        Run make in a project (TARGET: clean, install, uninstall)" << std::endl;
+    std::cerr << "  cmake <DIR> [uninstall]    Install, or run the uninstall target, in a configured CMake build directory" << std::endl;
     std::cerr << "  remove <PATH>              Remove a file tracked in the registry" << std::endl;
     std::cerr << "  remove-source <NAME>       Delete a clone left in the cache by an older version" << std::endl;
     std::cerr << "  write-registry             Replace the registry with JSON from stdin" << std::endl;
@@ -250,6 +276,9 @@ int main(int argc, char* argv[]) {
     }
     if (op == "make") {
         return op_make(args);
+    }
+    if (op == "cmake") {
+        return op_cmake(args);
     }
     if (op == "remove") {
         return op_remove(args);
