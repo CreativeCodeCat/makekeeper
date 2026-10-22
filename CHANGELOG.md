@@ -19,6 +19,10 @@ All notable changes to this project will be documented in this file. See [conven
 * Refactor git installation and update commands to use a shared cache directory ([42b8985](https://github.com/CreativeCodeCat/makekeeper/commit/42b8985))
 * Refactor install command to support custom application names ([5531e4d](https://github.com/CreativeCodeCat/makekeeper/commit/5531e4d))
 
+### :broom: Maintenance & Cleanup:
+
+* Update build scripts and dependencies for improved packaging and installation ([1c353ea](https://github.com/CreativeCodeCat/makekeeper/commit/1c353ea))
+
 ## [0.1.0 - MakeKeeper](https://github.com/CreativeCodeCat/makekeeper/tree/v0.1.0) - (20, October 2026)
 
 ### :bug: Bug Fixes:
