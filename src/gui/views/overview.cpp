@@ -32,7 +32,7 @@ QString status_style(const QColor& color) {
 
 } // namespace
 
-OverviewView::OverviewView(QWidget* parent) : BaseView(parent), process_(nullptr) {
+OverviewView::OverviewView(QWidget* parent) : BaseView(parent), process_(nullptr), check_process_(nullptr) {
     setup_ui();
     update_stats();
     check_auto_sync();
@@ -148,7 +148,47 @@ void OverviewView::check_auto_sync() {
     if (settings.value("auto_sync", false).toBool()) {
         log_to_terminal("Auto-sync enabled, running sync...");
         run_command("sync");
+    } else {
+        // Auto-sync already keeps the catalog current; otherwise, see if it's gone stale
+        check_for_catalog_update();
     }
+}
+
+void OverviewView::check_for_catalog_update() {
+    if (check_process_) {
+        return;
+    }
+
+    check_process_ = new QProcess(this);
+    check_process_->setProcessChannelMode(QProcess::MergedChannels);
+
+    QObject::connect(check_process_, &QProcess::finished, this, [this](int exit_code, QProcess::ExitStatus exit_status) {
+        if (exit_status == QProcess::NormalExit && exit_code == 0) {
+            QString output = QString::fromUtf8(check_process_->readAllStandardOutput()).trimmed();
+            if (output.startsWith("update-available")) {
+                QString version = output.section(' ', 1, 1);
+                sync_status_label_->setText("Update Available");
+                sync_status_label_->setStyleSheet(status_style(theme::warning_color()));
+                sync_status_detail_->setText(version.isEmpty()
+                    ? "A newer catalog is available"
+                    : "Version " + version + " is available");
+            }
+            // "up-to-date": leave whatever update_stats() already showed from the local cache
+        }
+        // A failed check (offline, etc.) stays silent; the label just keeps reflecting local state
+        check_process_->deleteLater();
+        check_process_ = nullptr;
+    });
+
+    QObject::connect(check_process_, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
+        // finished() already covers a crash; only FailedToStart skips it and needs cleanup here
+        if (error == QProcess::FailedToStart) {
+            check_process_->deleteLater();
+            check_process_ = nullptr;
+        }
+    });
+
+    check_process_->start(QCoreApplication::applicationFilePath(), {"sync", "--check"});
 }
 
 void OverviewView::set_running(bool running) {

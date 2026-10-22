@@ -26,6 +26,7 @@ private:
     void run_command(const QString& command);
     void set_running(bool running);
     void check_auto_sync();
+    void check_for_catalog_update();
 
     QLabel* total_installed_label_;
     QLabel* total_installed_detail_;
@@ -37,6 +38,7 @@ private:
     QPushButton* update_all_btn_;
     QTextEdit* terminal_panel_;
     QProcess* process_;
+    QProcess* check_process_;
 };
 
 } // namespace views

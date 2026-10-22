@@ -22,21 +22,34 @@ struct Package {
 };
 
 int sync(const std::vector<std::string>& args) {
+    const char* usage = "Usage: makekeeper sync [--check]";
+
     // Check for help flag
     if (!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
-        std::cout << "Usage: makekeeper sync" << std::endl;
+        std::cout << usage << std::endl;
         std::cout << std::endl;
         std::cout << "Download and sync the package catalog from the remote repository." << std::endl;
+        std::cout << std::endl;
+        std::cout << "Options:" << std::endl;
+        std::cout << "  --check    Only report whether a newer catalog is available; don't replace it" << std::endl;
         return 0;
     }
 
-    if (cli::reject_unknown_options(args, "Usage: makekeeper sync")) {
-        return 1;
+    bool check_only = false;
+    for (const auto& arg : args) {
+        if (arg == "--check") {
+            check_only = true;
+        } else if (cli::reject_unknown_options({arg}, usage)) {
+            return 1;
+        }
     }
 
-    std::cout << "Downloading package catalog..." << std::endl;
+    if (!check_only) {
+        std::cout << "Downloading package catalog..." << std::endl;
+    }
 
-    // Download packages.json to temp location first
+    // Download packages.json to temp location first. This is read-only and needs no privilege,
+    // whether or not we end up replacing the cached catalog.
     std::string temp_file = "/tmp/packages.json.tmp";
     if (!utils::download_file(config::PACKAGES_URL, temp_file)) {
         std::cerr << "Error: Failed to download package catalog." << std::endl;
@@ -58,6 +71,7 @@ int sync(const std::vector<std::string>& args) {
         return 1;
     }
     temp.close();
+    std::remove(temp_file.c_str());
 
     // Check version
     std::string remote_version = j["version"];
@@ -76,8 +90,16 @@ int sync(const std::vector<std::string>& args) {
     }
 
     if (remote_version == local_version) {
-        std::cout << "Package list is already up to date (version " << remote_version << ")" << std::endl;
-        std::remove(temp_file.c_str());
+        if (check_only) {
+            std::cout << "up-to-date " << remote_version << std::endl;
+        } else {
+            std::cout << "Package list is already up to date (version " << remote_version << ")" << std::endl;
+        }
+        return 0;
+    }
+
+    if (check_only) {
+        std::cout << "update-available " << remote_version << std::endl;
         return 0;
     }
 
@@ -89,8 +111,6 @@ int sync(const std::vector<std::string>& args) {
         std::string version = utils::get_latest_tag(url);
         item["latest_version"] = version;
     }
-
-    std::remove(temp_file.c_str());
 
     // The catalog lives in /var/lib, so the helper writes it as root
     if (utils::run_helper({"write-catalog"}, j.dump(2)) != 0) {
