@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. See [conven
 
 ## [v1.0.0 → Unreleased](https://github.com/CreativeCodeCat/makekeeper/tree/main) - In Development
 
+### :sparkles: Enhancements:
+
+* Add CMake support alongside Makefile-based package installs ([e326592](https://github.com/CreativeCodeCat/makekeeper/commit/e326592))
+
 ### :broom: Maintenance & Cleanup:
 
 * remove old package files from releases ([6f9c1e1](https://github.com/CreativeCodeCat/makekeeper/commit/6f9c1e1))
