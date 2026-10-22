@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :sparkles: Enhancements:
 
+* Add per-package build_flags support from the package catalog ([b8cfdb4](https://github.com/CreativeCodeCat/makekeeper/commit/b8cfdb4))
 * Add CMake support alongside Makefile-based package installs ([e326592](https://github.com/CreativeCodeCat/makekeeper/commit/e326592))
 
 ### :broom: Maintenance & Cleanup:
