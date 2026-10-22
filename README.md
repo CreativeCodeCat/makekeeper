@@ -27,14 +27,32 @@ MakeKeeper handles that for you. It clones or finds the project, builds it, inst
 
 ### Prebuilt packages
 
-Download the package for your distribution from the [releases page](https://github.com/CreativeCodeCat/makekeeper/releases), then install it:
+Download the package for your distribution from the [releases page](https://github.com/CreativeCodeCat/makekeeper/releases), then install it from the folder you downloaded it to.
 
-| Distribution | File | Install with |
-|--------------|------|--------------|
-| Arch Linux | `.pkg.tar.zst` | `sudo pacman -U ./makekeeper-*.pkg.tar.zst` |
-| Debian, Ubuntu | `.deb` | `sudo apt install ./makekeeper_*_amd64.deb` |
-| Fedora | `.rpm` | `sudo dnf install ./makekeeper-*.x86_64.rpm` |
-| Any distribution | `.AppImage` | `chmod +x MakeKeeper-*-x86_64.AppImage`, then run it |
+**Arch Linux** (`.pkg.tar.zst`)
+
+```bash
+sudo pacman -U ./makekeeper-*.pkg.tar.zst
+```
+
+**Debian and Ubuntu** (`.deb`)
+
+```bash
+sudo apt install ./makekeeper_*_amd64.deb
+```
+
+**Fedora** (`.rpm`)
+
+```bash
+sudo dnf install ./makekeeper-*.x86_64.rpm
+```
+
+**Any distribution** (`.AppImage`)
+
+```bash
+chmod +x MakeKeeper-*-x86_64.AppImage
+./MakeKeeper-*-x86_64.AppImage
+```
 
 The AppImage still needs `git`, `make` and `pkexec` (polkit) installed on your system, because MakeKeeper uses them to build and install other software.
 
