@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :bug: Bug Fixes:
 
+* Change checkbox signal from checkStateChanged to toggled for immediate setting saves ([0c93e39](https://github.com/CreativeCodeCat/makekeeper/commit/0c93e39))
 * Fix link to package catalog source in README.md ([c00c7fd](https://github.com/CreativeCodeCat/makekeeper/commit/c00c7fd))
 
 ### :wrench: Code Quality:
