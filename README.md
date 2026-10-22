@@ -161,7 +161,7 @@ Or launch **MakeKeeper** from your application menu. The GUI has views for an ov
 | `/var/lib/makekeeper/cache/packages.json` | Synced package catalog |
 | `~/.local/share/makekeeper/sources/<name>/` | Your clones of Git-based packages (deleted on uninstall) |
 
-The catalog is fetched from <https://creativecodecat.github.io/makekeeper/packages.json>. Its source lives in [docs/packages.json](https://github.com/CreativeCodeCat/makekeeper/blob/docs/packages.json).
+The catalog is fetched from <https://creativecodecat.github.io/makekeeper/packages.json>. Its source is [`packages.json` on the `docs` branch](https://github.com/CreativeCodeCat/makekeeper/blob/docs/packages.json), which the project's GitHub Pages site is built from.
 
 ## Security
 
@@ -176,7 +176,7 @@ The catalog is fetched from <https://creativecodecat.github.io/makekeeper/packag
 
 ## Adding a package to the catalog
 
-The catalog is a JSON file. To suggest a package, open a pull request that adds an entry to [docs/packages.json](docs/packages.json):
+The catalog is a JSON file on the `docs` branch. To suggest a package, open a pull request against the `docs` branch that adds an entry to [`packages.json`](https://github.com/CreativeCodeCat/makekeeper/blob/docs/packages.json):
 
 ```json
 {
@@ -187,7 +187,9 @@ The catalog is a JSON file. To suggest a package, open a pull request that adds 
 }
 ```
 
-The repository must have a `Makefile` at its root with `install` (and ideally `uninstall`) targets.
+In the same pull request, bump the catalog's top-level `"version"` (for example from `1.0.4` to `1.0.5`). `makekeeper sync` only downloads the catalog again when its version changes.
+
+The repository must have a `Makefile` at its root with `install` (and ideally `uninstall`) targets. The [project site](https://creativecodecat.github.io/makekeeper/#adding-a-package) has the full guide, including what each field means.
 
 ## Development
 
