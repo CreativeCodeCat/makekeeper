@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. See [conven
 
 ## [v0.1.0 → Unreleased](https://github.com/CreativeCodeCat/makekeeper/tree/main) - In Development
 
+### :bug: Bug Fixes:
+
+* Fix link to package catalog source in README.md ([c00c7fd](https://github.com/CreativeCodeCat/makekeeper/commit/c00c7fd))
+
 ### :wrench: Code Quality:
 
 * Refactor README.md for clarity and improved structure ([c3ba270](https://github.com/CreativeCodeCat/makekeeper/commit/c3ba270))
