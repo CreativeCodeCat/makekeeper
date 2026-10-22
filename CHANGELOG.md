@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :sparkles: Enhancements:
 
+* Introduce color handling for terminal output and enhance GUI styling with new button styles ([1e0cde3](https://github.com/CreativeCodeCat/makekeeper/commit/1e0cde3))
 * Add AppImage build process to release workflow ([948e0d7](https://github.com/CreativeCodeCat/makekeeper/commit/948e0d7))
 
 ### :bug: Bug Fixes:
@@ -15,6 +16,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :wrench: Code Quality:
 
+* Refactor GUI theme handling and improve styling consistency ([500e32e](https://github.com/CreativeCodeCat/makekeeper/commit/500e32e))
 * Refactor MakeKeeper to use a helper for privileged operations ([b9691c2](https://github.com/CreativeCodeCat/makekeeper/commit/b9691c2))
 * Refactor README.md for clarity and improved structure ([c3ba270](https://github.com/CreativeCodeCat/makekeeper/commit/c3ba270))
 * Refactor UI styles for consistency and improved theming ([8d95c59](https://github.com/CreativeCodeCat/makekeeper/commit/8d95c59))
