@@ -1,4 +1,5 @@
 #include "gui.h"
+#include "../cli.h"
 #include "../gui/gui.h"
 #include "../utils.h"
 #include <iostream>
@@ -13,6 +14,10 @@ int gui(const std::vector<std::string>& args) {
         std::cout << std::endl;
         std::cout << "Launch the MakeKeeper graphical user interface." << std::endl;
         return 0;
+    }
+
+    if (cli::reject_unknown_options(args, "Usage: makekeeper gui")) {
+        return 1;
     }
 
     if (utils::is_root()) {

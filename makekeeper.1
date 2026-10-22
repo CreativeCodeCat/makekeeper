@@ -1,264 +1,219 @@
 .TH MAKEKEEPER 1 "October 2026" "makekeeper 0.1.0" "User Commands"
 
 .SH NAME
-makekeeper \- A safer installer for Makefile-based Linux applications
+makekeeper \- a safer installer and manager for Makefile-based Linux applications
 
 .SH SYNOPSIS
 .B makekeeper
-.RI [ COMMAND ]
-.RI [ OPTIONS ]
+.I COMMAND
+.RI [ ARGS ]
+.br
+.B makekeeper
+.RB [ \-h | \-\-help | \-v | \-\-version ]
 
 .SH DESCRIPTION
-makekeeper provides a controlled way to install applications that use GNU Make build systems. It tracks all installed files and managed symlinks, enabling safe uninstallation and preventing conflicts with existing installations.
+.B makekeeper
+installs applications that ship with nothing but a Makefile, and keeps a registry
+of everything it installed so packages can be listed, updated and uninstalled later.
 
-Applications are installed to
-.IR /opt/makekeeper/apps/<name>/
-and executable symlinks are created in
-.IR /usr/local/bin/ .
-
-makekeeper automatically uses pkexec for operations requiring root privileges.
+Packages can come from the curated package catalog, a Git URL, or a local directory.
+Git packages are cloned as your user into
+.IR ~/.local/share/makekeeper/sources/<name>/
+and built with
+.BR make (1)
+as your user. Only
+.B make install
+and
+.B make uninstall
+run as root, through a small helper that is authorized with
+.BR pkexec (1).
+polkit remembers the authorization briefly, so one command asks for your password once.
 
 .SH COMMANDS
+Every command also accepts
+.B \-h
+or
+.B \-\-help
+as its first argument to show help for that command.
 
 .TP
-.B inspect [PROJECT]
-Inspect a project's Makefile and preview installation commands. This shows possible Make targets and a dry-run preview of the installation without actually installing.
-
-.TP
-.B install [PACKAGE] [OPTIONS]
-Build and install a project. If PACKAGE is a known package name from the catalog, it will be installed from its git repository. Otherwise, use \-\-dir to install from a local directory.
-
+.BI install " NAME" | URL | DIR " \fR[\fB\-\-name \fINAME\fR] [\fB\-\-override\fR] [\fB\-\-yes\fR]"
+Install a package. A
+.I NAME
+is looked up in the synced package catalog, a
+.I URL
+is cloned, and a
+.I DIR
+is built in place. The project is built with
+.B make
+(skipped when a
+.IR build/ ,
+.I target/
+or
+.I bin/
+directory already exists), installed with
+.BR "make install" ,
+and recorded in the registry. Before building, it shows the package, its source and what
+will run as root, and asks for confirmation.
 .RS
-.RS
 .TP
-.B \-\-dir [PATH]
-Install from a specific directory instead of the package catalog.
-
-.TP
-.B \-\-name [NAME]
-Specify a custom application name. Defaults to the package name or directory name.
-
-.TP
-.B \-\-yes
-Skip the confirmation prompt.
-
+.BI \-\-name " NAME"
+Register the package under
+.I NAME
+instead of the catalog, repository or directory name.
 .TP
 .B \-\-override
-Override an existing installation. This will uninstall the existing version before installing the new one.
-
+Reinstall a package that is already installed, removing its previously tracked files first.
 .TP
-.B \-\-verbose
-Show detailed installation output.
-.RE
+.BR \-y ", " \-\-yes
+Don't ask for confirmation. Required when there is no terminal to ask on, such as in scripts.
 .RE
 
 .TP
-.B git [URL] [OPTIONS]
-Clone a git repository and install it. The repository is cloned to a cache directory and kept for future updates.
-
-.RS
-.RS
-.TP
-.B \-\-name [NAME]
-Specify a custom application name. Defaults to the repository name.
-
-.TP
-.B \-\-yes
-Skip the confirmation prompt.
-
-.TP
-.B \-\-override
-Override an existing installation. This will uninstall the existing version before installing the new one.
-
-.TP
-.B \-\-verbose
-Show detailed installation output.
-.RE
-.RE
-
-.TP
-.B update [OPTIONS]
-Check for updates to all Git-based installations and rebuild any that have changed on the remote repository.
-
-.RS
+.BI uninstall " NAME" " \fR[\fB\-\-yes\fR]"
+Run the package's
+.BR "make uninstall" ,
+remove the files and symlinks the registry tracks for it, delete the clone MakeKeeper made,
+and remove it from the registry. Directories you installed from are never deleted.
+It lists what will be removed and asks for confirmation first.
 .RS
 .TP
-.B \-\-yes
-Skip the confirmation prompt.
-
-.TP
-.B \-\-verbose
-Show detailed update output.
-.RE
+.BR \-y ", " \-\-yes
+Don't ask for confirmation. Required when there is no terminal to ask on, such as in scripts.
 .RE
 
 .TP
-.B sync
-Download the latest package catalog from the remote server. This is required before using package-based installation or search.
-
-.TP
-.B search [QUERY]
-Search the package catalog for applications matching your query. Searches across package names, descriptions, categories, and URLs.
-
-.TP
-.B fetch
-Show the count of installed packages and Git-tracked packages.
+.BR update " [\fINAME\fR]"
+Fetch the package's Git repository and, if there are new commits or the installed commit
+differs, pull, rebuild and reinstall it. Without
+.IR NAME ,
+every package installed from Git is updated.
 
 .TP
 .B list
-List all registered applications with file and symlink counts.
+List installed packages with their URL, install date and commit.
 
 .TP
-.B info [NAME]
-Display detailed information about an installed application, including source, prefix, installed files, and managed symlinks.
+.BI info " NAME"
+Show an installed package's URL, source directory, commit, install date and tracked files.
 
 .TP
-.B uninstall [NAME] [OPTIONS]
-Remove tracked files and managed executable symlinks. Only unchanged files are removed; modified files are preserved for manual review.
-
-.RS
-.RS
-.TP
-.B \-\-yes
-Skip the confirmation prompt.
+.BI search " QUERY"
+Search the package catalog's names and descriptions, ignoring case.
 
 .TP
-.B \-\-verbose
-Show detailed removal output.
-.RE
-.RE
+.B sync
+Download the latest package catalog and look up each package's latest version.
+Required before installing or searching by catalog name.
+
+.TP
+.B fetch
+Print package statistics as
+.IR installed / git ,
+the number of installed packages and how many of them came from Git.
+
+.TP
+.B gui
+Launch the graphical interface.
 
 .SH OPTIONS
-
 .TP
-.B \-h, \-\-help
-Print help information.
-
+.BR \-h ", " \-\-help
+Show the list of commands.
 .TP
-.B \-V, \-\-version
-Print version information.
+.BR \-v ", " \-\-version
+Show the version.
 
 .SH EXAMPLES
-
-Sync package catalog:
+Sync the catalog and find a package:
 .RS
 .PP
 .nf
 makekeeper sync
-.fi
-.RE
-
-Search for packages:
-.RS
-.PP
-.nf
 makekeeper search terminal
 .fi
 .RE
 
-Install from package catalog:
+Install from the catalog, a Git URL, or a local directory:
 .RS
 .PP
 .nf
-makekeeper install neofetch
+makekeeper install st
+makekeeper install https://github.com/user/project.git
+makekeeper install ~/src/project
 .fi
 .RE
 
-Install from directory:
+Install under a custom name, or reinstall:
 .RS
 .PP
 .nf
-makekeeper install --dir /path/to/project
+makekeeper install ~/src/project \-\-name myapp
+makekeeper install st \-\-override
 .fi
 .RE
 
-Install with a custom name:
+Update one package, or all of them:
 .RS
 .PP
 .nf
-makekeeper install --dir /path/to/project --name myapp
-.fi
-.RE
-
-Install from a git repository:
-.RS
-.PP
-.nf
-makekeeper git https://github.com/user/project
-.fi
-.RE
-
-Update Git-based installations:
-.RS
-.PP
-.nf
+makekeeper update st
 makekeeper update
 .fi
 .RE
 
-Inspect before installing:
+Uninstall a package:
 .RS
 .PP
 .nf
-makekeeper inspect /path/to/project
-.fi
-.RE
-
-List installed applications:
-.RS
-.PP
-.nf
-makekeeper list
-.fi
-.RE
-
-View installation details:
-.RS
-.PP
-.nf
-makekeeper info myapp
-.fi
-.RE
-
-Uninstall an application:
-.RS
-.PP
-.nf
-makekeeper uninstall myapp
+makekeeper uninstall st
 .fi
 .RE
 
 .SH FILES
-
 .TP
-.I /opt/makekeeper/apps/<name>/
-Installation prefix for applications.
-
+.I /var/lib/makekeeper/registry.json
+Registry of installed packages.
 .TP
-.I /usr/local/bin/
-Directory where executable symlinks are created.
-
+.I /var/lib/makekeeper/cache/packages.json
+Synced package catalog.
 .TP
-.I /var/lib/makekeeper/<name>.json
-Installation records tracking files and symlinks.
+.I ~/.local/share/makekeeper/sources/<name>/
+Your clones of Git-based packages, deleted on uninstall.
+.TP
+.I ~/.config/makekeeper/settings.conf
+GUI settings.
+.TP
+.I <prefix>/lib/makekeeper/makekeeper\-helper
+The privileged helper; the only part of MakeKeeper that runs as root.
+.TP
+.I /usr/share/polkit\-1/actions/io.github.creativecodecat.makekeeper.policy
+polkit policy that authorizes the helper.
+
+.SH ENVIRONMENT
+.TP
+.B NO_COLOR
+When set to a non-empty value, disable coloured output. Output is also plain when it is not a terminal.
+.TP
+.BR XDG_DATA_HOME ", " XDG_CONFIG_HOME
+Override the locations of the sources directory and the settings file.
 
 .SH SECURITY
-
-makekeeper automatically uses pkexec for operations requiring root privileges. Makefiles can execute arbitrary code; only install projects you trust. Always inspect a project with makekeeper inspect before installing. The make install step is not sandboxed.
-
-.SH REQUIREMENTS
-
-\- Linux system
-.br
-\- GNU Make
-.br
-\- Rust toolchain (for building makekeeper)
-.br
-\- Root/sudo access for installation and management
+A Makefile can run any command, and
+.B make install
+runs as root. Only install projects you trust, and read their Makefile first.
+Builds are not sandboxed. The helper only accepts a fixed set of operations: running
+.BR make ,
+.BR "make install" ,
+.B make uninstall
+or
+.B make clean
+in a project, removing files the registry tracks, and writing MakeKeeper's own state.
 
 .SH SEE ALSO
-
-.BR make (1)
+.BR make (1),
+.BR git (1),
+.BR pkexec (1)
 
 .SH AUTHOR
-makekeeper v0.1.0
+CreativeCodeCat and MakeKeeper contributors.

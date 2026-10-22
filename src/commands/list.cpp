@@ -1,4 +1,5 @@
 #include "list.h"
+#include "../cli.h"
 #include "../registry.h"
 #include "../config.h"
 #include "../colors.h"
@@ -15,6 +16,10 @@ int list(const std::vector<std::string>& args) {
         std::cout << std::endl;
         std::cout << "List all installed packages with their details." << std::endl;
         return 0;
+    }
+
+    if (cli::reject_unknown_options(args, "Usage: makekeeper list")) {
+        return 1;
     }
 
     // Load registry

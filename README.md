@@ -114,13 +114,17 @@ makekeeper install ~/src/myproject                          # from a local direc
 |--------|-------------|
 | `--name NAME` | Register the package under a custom name |
 | `--override` | Reinstall a package that is already installed |
+| `-y`, `--yes` | Don't ask for confirmation |
 
 The install steps are:
 
 1. **Resolve the source.** Catalog names are looked up in the synced catalog, URLs are cloned as your user into `~/.local/share/makekeeper/sources/<name>`, and directories are used in place.
-2. **Build** with `make`, as your user (skipped if a `build/`, `target/` or `bin/` directory already exists).
-3. **Install** with `make install`, as root.
-4. **Record** the package, its source and Git commit in the registry.
+2. **Confirm.** MakeKeeper shows the package, its source and what will run as root, and asks before going ahead.
+3. **Build** with `make`, as your user (skipped if a `build/`, `target/` or `bin/` directory already exists).
+4. **Install** with `make install`, as root.
+5. **Record** the package, its source and Git commit in the registry.
+
+Without a terminal to ask on, such as in a script, `install` and `uninstall` refuse to continue unless you pass `--yes`.
 
 ### Updating packages
 
@@ -139,7 +143,7 @@ Older versions kept root-owned clones in `/var/lib/makekeeper/cache/`. The next 
 makekeeper uninstall neofetch
 ```
 
-This runs `make uninstall` in the package's source directory (if it still exists), removes the files and symlinks tracked in the registry, and deletes the registry entry.
+This runs `make uninstall` in the package's source directory (if it still exists), removes the files and symlinks tracked in the registry, deletes MakeKeeper's clone of the package, and deletes the registry entry. It lists what will be removed and asks first; pass `-y` or `--yes` to skip the question.
 
 ### The GUI
 

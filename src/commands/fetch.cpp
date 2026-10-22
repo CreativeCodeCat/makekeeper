@@ -1,4 +1,5 @@
 #include "fetch.h"
+#include "../cli.h"
 #include "../registry.h"
 #include "../config.h"
 #include <iostream>
@@ -14,6 +15,10 @@ int fetch(const std::vector<std::string>& args) {
         std::cout << std::endl;
         std::cout << "Show package statistics: total installed / packages with Git repositories." << std::endl;
         return 0;
+    }
+
+    if (cli::reject_unknown_options(args, "Usage: makekeeper fetch")) {
+        return 1;
     }
 
     // Load registry

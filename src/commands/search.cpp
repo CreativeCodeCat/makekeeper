@@ -1,4 +1,5 @@
 #include "search.h"
+#include "../cli.h"
 #include "../config.h"
 #include "../utils.h"
 #include "../colors.h"
@@ -30,6 +31,10 @@ int search(const std::vector<std::string>& args) {
         std::cout << std::endl;
         std::cout << "Searches through package names and descriptions." << std::endl;
         return 0;
+    }
+
+    if (cli::reject_unknown_options(args, "Usage: makekeeper search <QUERY>")) {
+        return 1;
     }
 
     if (args.empty()) {

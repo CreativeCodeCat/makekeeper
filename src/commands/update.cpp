@@ -1,4 +1,5 @@
 #include "update.h"
+#include "../cli.h"
 #include "../registry.h"
 #include "../utils.h"
 #include "../config.h"
@@ -96,6 +97,10 @@ int update(const std::vector<std::string>& args) {
         std::cout << "Arguments:" << std::endl;
         std::cout << "  NAME    Package name to update (optional, updates all if not specified)" << std::endl;
         return 0;
+    }
+
+    if (cli::reject_unknown_options(args, "Usage: makekeeper update [NAME]")) {
+        return 1;
     }
 
     // Load registry

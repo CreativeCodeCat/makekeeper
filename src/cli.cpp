@@ -2,6 +2,7 @@
 #include "config.h"
 #include <iostream>
 #include <algorithm>
+#include <unistd.h>
 
 namespace makekeeper {
 namespace cli {
@@ -81,6 +82,42 @@ void CLI::print_help() const {
 
 void CLI::print_version() const {
     std::cout << "MakeKeeper v" << config::VERSION << std::endl;
+}
+
+bool reject_unknown_options(const std::vector<std::string>& args, const std::string& usage) {
+    for (const auto& arg : args) {
+        if (arg.size() > 1 && arg[0] == '-') {
+            std::cerr << "Error: Unknown option '" << arg << "'." << std::endl;
+            std::cerr << usage << std::endl;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool confirm(const std::string& summary, const std::string& question) {
+    if (!isatty(STDIN_FILENO)) {
+        std::cerr << "Error: Cannot ask for confirmation without a terminal. Use --yes to continue without asking." << std::endl;
+        return false;
+    }
+
+    std::cout << summary << question << " [Y/n] " << std::flush;
+    std::string answer;
+    if (!std::getline(std::cin, answer)) {
+        std::cout << std::endl;
+        answer = "n";
+    }
+
+    // Trim and lowercase the answer
+    answer.erase(0, answer.find_first_not_of(" \t"));
+    answer.erase(answer.find_last_not_of(" \t") + 1);
+    std::transform(answer.begin(), answer.end(), answer.begin(), ::tolower);
+
+    if (answer.empty() || answer == "y" || answer == "yes") {
+        return true;
+    }
+    std::cout << "Cancelled." << std::endl;
+    return false;
 }
 
 } // namespace cli

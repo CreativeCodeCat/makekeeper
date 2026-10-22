@@ -1,4 +1,5 @@
 #include "sync.h"
+#include "../cli.h"
 #include "../config.h"
 #include "../utils.h"
 #include <iostream>
@@ -27,6 +28,10 @@ int sync(const std::vector<std::string>& args) {
         std::cout << std::endl;
         std::cout << "Download and sync the package catalog from the remote repository." << std::endl;
         return 0;
+    }
+
+    if (cli::reject_unknown_options(args, "Usage: makekeeper sync")) {
+        return 1;
     }
 
     std::cout << "Downloading package catalog..." << std::endl;

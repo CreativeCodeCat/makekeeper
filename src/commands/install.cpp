@@ -1,8 +1,11 @@
 #include "install.h"
+#include "../cli.h"
 #include "../registry.h"
 #include "../utils.h"
 #include "../config.h"
+#include "../colors.h"
 #include <iostream>
+#include <sstream>
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -15,41 +18,54 @@ namespace makekeeper {
 namespace commands {
 
 int install(const std::vector<std::string>& args) {
+    const char* usage = "Usage: makekeeper install <NAME|URL|DIR> [--name NAME] [--override] [--yes]";
+
     // Check for help flag
     if (!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
-        std::cout << "Usage: makekeeper install <NAME|URL> [--name NAME] [--dir DIR] [--override]" << std::endl;
+        std::cout << usage << std::endl;
         std::cout << std::endl;
         std::cout << "Arguments:" << std::endl;
-        std::cout << "  NAME|URL    Package name, Git URL, or local directory" << std::endl;
+        std::cout << "  NAME|URL|DIR    Package name, Git URL, or local directory" << std::endl;
         std::cout << std::endl;
         std::cout << "Options:" << std::endl;
         std::cout << "  --name NAME    Specify custom package name" << std::endl;
-        std::cout << "  --dir DIR      Specify source directory" << std::endl;
         std::cout << "  --override     Reinstall if already installed" << std::endl;
+        std::cout << "  -y, --yes      Don't ask for confirmation" << std::endl;
         return 0;
     }
 
-    if (args.empty()) {
-        std::cerr << "Usage: makekeeper install <NAME|URL> [--name NAME] [--dir DIR] [--override]" << std::endl;
-        return 1;
-    }
-
-    std::string source = args[0];
+    std::string source;
     std::string name;
-    std::string dir = ".";
     bool override = false;
+    bool yes = false;
 
-    // Parse args
-    for (size_t i = 1; i < args.size(); i++) {
-        if (args[i] == "--name" && i + 1 < args.size()) {
+    // Parse args: one source and options in any order, rejecting anything unknown rather than silently ignoring it
+    for (size_t i = 0; i < args.size(); i++) {
+        if (args[i] == "--name") {
+            if (i + 1 >= args.size()) {
+                std::cerr << "Error: --name needs a value." << std::endl;
+                return 1;
+            }
             name = args[i + 1];
-            i++;
-        } else if (args[i] == "--dir" && i + 1 < args.size()) {
-            dir = args[i + 1];
             i++;
         } else if (args[i] == "--override") {
             override = true;
+        } else if (args[i] == "--yes" || args[i] == "-y") {
+            yes = true;
+        } else if (cli::reject_unknown_options({args[i]}, usage)) {
+            return 1;
+        } else if (source.empty()) {
+            source = args[i];
+        } else {
+            std::cerr << "Error: Unexpected argument '" << args[i] << "'." << std::endl;
+            std::cerr << usage << std::endl;
+            return 1;
         }
+    }
+
+    if (source.empty()) {
+        std::cerr << usage << std::endl;
+        return 1;
     }
 
     // Load registry
@@ -148,6 +164,36 @@ int install(const std::vector<std::string>& args) {
         }
     }
 
+    // Don't install with empty name
+    if (name.empty()) {
+        std::cerr << "Error: Could not determine package name. Use --name to specify." << std::endl;
+        return 1;
+    }
+
+    // Cloned packages are stored in a directory named after the package
+    if (!url.empty() && (name == "." || name == ".." || name.find('/') != std::string::npos)) {
+        std::cerr << "Error: Invalid package name '" << name << "'. Use --name to specify." << std::endl;
+        return 1;
+    }
+
+    // Show what is about to happen and ask first, unless --yes was given
+    if (!yes) {
+        std::ostringstream summary;
+        summary << std::endl;
+        summary << "Package:  " << colors::green << name << colors::reset << std::endl;
+        summary << "Source:   " << colors::cyan << (url.empty() ? source_dir : url) << colors::reset << std::endl;
+        summary << "Runs:     make, then make install as root" << std::endl;
+        if (registry.exists(name)) {
+            summary << "Replaces: the installed " << name << ", removing its tracked files first" << std::endl;
+        }
+        summary << std::endl;
+        summary << "Only install software you trust: its Makefile runs with root privileges." << std::endl;
+        if (!cli::confirm(summary.str(), "Install " + name + "?")) {
+            return 1;
+        }
+        std::cout << std::endl;
+    }
+
     // Check if already installed with --override (after name is determined)
     if (registry.exists(name)) {
         if (override) {
@@ -175,18 +221,6 @@ int install(const std::vector<std::string>& args) {
                 registry.save();
             }
         }
-    }
-
-    // Don't install with empty name
-    if (name.empty()) {
-        std::cerr << "Error: Could not determine package name. Use --name to specify." << std::endl;
-        return 1;
-    }
-
-    // Cloned packages are stored in a directory named after the package
-    if (!url.empty() && (name == "." || name == ".." || name.find('/') != std::string::npos)) {
-        std::cerr << "Error: Invalid package name '" << name << "'. Use --name to specify." << std::endl;
-        return 1;
     }
 
     std::cout << "Installing " << name << "..." << std::endl;

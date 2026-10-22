@@ -383,12 +383,13 @@ void PackagesView::on_install_clicked() {
         auto answer = QMessageBox::question(this, "Uninstall " + selected_name_,
             QString("Uninstall %1? This runs its 'make uninstall' and removes the files MakeKeeper tracked for it.").arg(selected_name_));
         if (answer == QMessageBox::Yes) {
-            run_command({"uninstall", selected_name_});
+            run_command({"uninstall", selected_name_, "--yes"});
         }
         return;
     }
 
-    // Respect the "Confirm before installing packages" setting
+    // Respect the "Confirm before installing packages" setting. The GUI asks here, so it runs the
+    // command with --yes (the CLI's own prompt needs a terminal)
     QSettings settings(QString::fromStdString(utils::user_config_dir()) + "/settings.conf", QSettings::IniFormat);
     if (settings.value("confirm_install", true).toBool()) {
         auto answer = QMessageBox::question(this, "Install " + selected_name_,
@@ -398,7 +399,7 @@ void PackagesView::on_install_clicked() {
             return;
         }
     }
-    run_command({"install", selected_name_});
+    run_command({"install", selected_name_, "--yes"});
 }
 
 void PackagesView::log_to_terminal(const QString& message) {

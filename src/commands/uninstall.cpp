@@ -1,9 +1,13 @@
 #include "uninstall.h"
+#include "../cli.h"
 #include "../registry.h"
 #include "../utils.h"
 #include "../config.h"
+#include "../colors.h"
 #include <iostream>
+#include <sstream>
 #include <filesystem>
+#include <algorithm>
 
 namespace fs = std::filesystem;
 
@@ -11,21 +15,42 @@ namespace makekeeper {
 namespace commands {
 
 int uninstall(const std::vector<std::string>& args) {
+    const char* usage = "Usage: makekeeper uninstall <NAME> [--yes]";
+
     // Check for help flag
     if (!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
-        std::cout << "Usage: makekeeper uninstall <NAME>" << std::endl;
+        std::cout << usage << std::endl;
         std::cout << std::endl;
         std::cout << "Arguments:" << std::endl;
         std::cout << "  NAME    Package name to uninstall" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Options:" << std::endl;
+        std::cout << "  -y, --yes    Don't ask for confirmation" << std::endl;
         return 0;
     }
 
-    if (args.empty()) {
-        std::cerr << "Usage: makekeeper uninstall <NAME>" << std::endl;
-        return 1;
+    std::string name;
+    bool yes = false;
+
+    // Parse args: the package name and --yes in any order, rejecting anything unknown
+    for (const auto& arg : args) {
+        if (arg == "--yes" || arg == "-y") {
+            yes = true;
+        } else if (cli::reject_unknown_options({arg}, usage)) {
+            return 1;
+        } else if (name.empty()) {
+            name = arg;
+        } else {
+            std::cerr << "Error: Unexpected argument '" << arg << "'." << std::endl;
+            std::cerr << usage << std::endl;
+            return 1;
+        }
     }
 
-    std::string name = args[0];
+    if (name.empty()) {
+        std::cerr << usage << std::endl;
+        return 1;
+    }
 
     // Load registry
     auto& registry = registry::Registry::instance();
@@ -41,10 +66,53 @@ int uninstall(const std::vector<std::string>& args) {
         return 1;
     }
 
+    // MakeKeeper deletes the clone it made for this package; directories installed from are left alone
+    bool legacy_source = utils::is_legacy_source(record->source_dir);
+    bool managed_source = legacy_source ||
+        fs::path(record->source_dir).parent_path() == fs::path(utils::user_sources_dir());
+    bool has_source = !record->source_dir.empty() && fs::exists(record->source_dir);
+
+    // Show what is about to be removed and ask first, unless --yes was given
+    if (!yes) {
+        std::ostringstream summary;
+        std::vector<std::string> present;
+        for (const auto& list : {record->files, record->symlinks}) {
+            for (const auto& path : list) {
+                bool listed = std::find(present.begin(), present.end(), path) != present.end();
+                if (!listed && (fs::exists(path) || utils::is_symlink(path))) {
+                    present.push_back(path);
+                }
+            }
+        }
+
+        summary << std::endl;
+        summary << "Package:  " << colors::green << name << colors::reset << std::endl;
+        if (has_source) {
+            summary << "Runs:     make uninstall as root" << std::endl;
+        }
+        if (present.empty()) {
+            summary << "Removes:  " << colors::gray << "no tracked files are present" << colors::reset << std::endl;
+        }
+        for (size_t i = 0; i < present.size(); i++) {
+            summary << (i == 0 ? "Removes:  " : "          ") << present[i] << std::endl;
+        }
+        if (managed_source && has_source) {
+            summary << "Deletes:  " << record->source_dir << std::endl;
+        }
+        if (name == "makekeeper") {
+            summary << "Deletes:  " << config::REGISTRY_DIR << " (the registry and package catalog)" << std::endl;
+        }
+        summary << std::endl;
+        if (!cli::confirm(summary.str(), "Uninstall " + name + "?")) {
+            return 1;
+        }
+        std::cout << std::endl;
+    }
+
     std::cout << "Uninstalling " << name << "..." << std::endl;
 
     // Run make uninstall if source dir exists
-    if (!record->source_dir.empty() && fs::exists(record->source_dir)) {
+    if (has_source) {
         utils::run_helper({"make", record->source_dir, "uninstall"});
     }
 
@@ -70,12 +138,12 @@ int uninstall(const std::vector<std::string>& args) {
         }
     }
 
-    // Delete the clone MakeKeeper made for this package; directories installed from are left alone
-    if (utils::is_legacy_source(record->source_dir)) {
+    // Delete the clone MakeKeeper made for this package
+    if (legacy_source) {
         if (utils::run_helper({"remove-source", fs::path(record->source_dir).filename().string()}) == 0) {
             std::cout << "  Removed source: " << record->source_dir << std::endl;
         }
-    } else if (fs::path(record->source_dir).parent_path() == fs::path(utils::user_sources_dir())) {
+    } else if (managed_source) {
         std::error_code ec;
         fs::remove_all(record->source_dir, ec);
         if (!ec) {
