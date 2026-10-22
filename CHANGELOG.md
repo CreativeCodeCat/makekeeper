@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. See [conven
 
 ## [v0.1.0 → Unreleased](https://github.com/CreativeCodeCat/makekeeper/tree/main) - In Development
 
+### :sparkles: Enhancements:
+
+* Add AppImage build process to release workflow ([948e0d7](https://github.com/CreativeCodeCat/makekeeper/commit/948e0d7))
+
 ### :bug: Bug Fixes:
 
 * Change checkbox signal from checkStateChanged to toggled for immediate setting saves ([0c93e39](https://github.com/CreativeCodeCat/makekeeper/commit/0c93e39))
