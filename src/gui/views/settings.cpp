@@ -83,17 +83,17 @@ void SettingsView::setup_ui() {
 
     auto_sync_ = new QCheckBox("Auto-sync catalog on startup", prefs_tab);
     auto_sync_->setStyleSheet("QCheckBox { color: palette(text); font-size: 13px; spacing: 8px; }");
-    QObject::connect(auto_sync_, &QCheckBox::checkStateChanged, this, [this]() { save_settings(); });
+    QObject::connect(auto_sync_, &QCheckBox::toggled, this, [this]() { save_settings(); });
     prefs_layout->addWidget(auto_sync_);
 
     notifications_ = new QCheckBox("Show desktop notifications", prefs_tab);
     notifications_->setStyleSheet("QCheckBox { color: palette(text); font-size: 13px; spacing: 8px; }");
-    QObject::connect(notifications_, &QCheckBox::checkStateChanged, this, [this]() { save_settings(); });
+    QObject::connect(notifications_, &QCheckBox::toggled, this, [this]() { save_settings(); });
     prefs_layout->addWidget(notifications_);
 
     confirm_install_ = new QCheckBox("Confirm before installing packages", prefs_tab);
     confirm_install_->setStyleSheet("QCheckBox { color: palette(text); font-size: 13px; spacing: 8px; }");
-    QObject::connect(confirm_install_, &QCheckBox::checkStateChanged, this, [this]() { save_settings(); });
+    QObject::connect(confirm_install_, &QCheckBox::toggled, this, [this]() { save_settings(); });
     prefs_layout->addWidget(confirm_install_);
 
     prefs_layout->addStretch();
