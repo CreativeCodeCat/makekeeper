@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [v1.0.0 → Unreleased](https://github.com/CreativeCodeCat/makekeeper/tree/main) - In Development
+
+### :broom: Maintenance & Cleanup:
+
+* remove old package files from releases ([6f9c1e1](https://github.com/CreativeCodeCat/makekeeper/commit/6f9c1e1))
+
 ## [v1.0.0](https://github.com/CreativeCodeCat/makekeeper/tree/v1.0.0) - (22, October 2026)
 
 ### :sparkles: Enhancements:
