@@ -42,6 +42,16 @@ static UpdateResult update_package(registry::Record record, registry::Registry& 
         return UpdateResult::Failed;
     }
 
+    // The clone can go missing without MakeKeeper's knowledge (deleted by hand, disk cleanup,
+    // etc.); re-clone it from the recorded URL rather than letting git fail on the missing directory
+    if (!fs::exists(record.source_dir)) {
+        std::cout << indent << "Source directory is missing, re-cloning..." << std::endl;
+        if (!utils::clone_source(record.url, record.source_dir)) {
+            std::cerr << indent << "Error: Failed to clone repository." << std::endl;
+            return UpdateResult::Failed;
+        }
+    }
+
     // Fetch changes
     if (utils::git_update_source(record.source_dir, "fetch") != 0) {
         std::cerr << indent << "Error: Failed to fetch updates." << std::endl;
