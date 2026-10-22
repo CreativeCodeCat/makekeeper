@@ -1,300 +1,205 @@
-# makekeeper
+<p align="center">
+  <img src="makekeeper.svg" alt="MakeKeeper logo" width="128">
+</p>
 
-A safer installer for Makefile-based Linux applications.
+<h1 align="center">MakeKeeper</h1>
 
-makekeeper provides a controlled way to install applications that use GNU Make build systems. It tracks all installed files and managed symlinks, enabling safe uninstallation and preventing conflicts with existing installations.
+<p align="center">
+  A safer installer and manager for Makefile-based Linux applications.
+</p>
+
+---
+
+Plenty of Linux software (suckless tools, small CLI utilities, dotfile-style projects) ships with nothing but a `Makefile`. Installing it is easy — `make && sudo make install` — but keeping track of what landed where, updating it later, or removing it cleanly is not.
+
+MakeKeeper wraps that workflow. It clones or locates the project, builds and installs it, and keeps a registry of every package so you can list, inspect, update and uninstall them later from the command line or a Qt GUI.
 
 ## Features
 
-- **Tracked installations**: Records all files and symlinks created during installation
-- **Safe uninstallation**: Removes only unchanged files, preserving user modifications
-- **Conflict warnings**: Warns before overwriting existing files or symlinks
-- **Preview before install**: Inspect Makefiles and preview installation commands
-- **Executable symlinks**: Automatically links executables from `bin/` directories to `/usr/local/bin`
-- **Man page support**: Automatically symlinks man pages to `/usr/share/man`
-- **Git repository support**: Install directly from git repositories with automatic caching
-- **Update detection**: Check for and update Git-based installations when remote changes
-- **Package catalog**: Browse and install from a curated list of Makefile-based applications
-- **Modular architecture**: Clean codebase with organized modules for maintainability
+- **One command to install**: install from the package catalog, a Git URL, or a local directory
+- **Package registry**: records the source, Git commit, install date and tracked files for every package
+- **Clean uninstall**: runs the project's `make uninstall`, then removes the tracked files and symlinks
+- **Git-aware updates**: pulls, rebuilds and reinstalls packages installed from a Git repository
+- **Package catalog**: sync and search a curated list of Makefile-based applications
+- **Desktop GUI**: browse, install and manage packages from a Qt 6 interface
+- **Privilege escalation**: asks for root through `pkexec` only for the steps that need it
 
 ## Installation
 
-### From source
+### Prebuilt packages
+
+The [releases](https://github.com/CreativeCodeCat/makekeeper/releases) page provides `.pkg.tar.zst` (Arch), `.deb` (Debian/Ubuntu) and `.rpm` (Fedora/openSUSE) packages.
+
+### Arch Linux (PKGBUILD)
 
 ```bash
-cargo build --release
-make install
+git clone https://github.com/CreativeCodeCat/makekeeper.git
+cd makekeeper
+makepkg -si
+```
+
+### From source
+
+Install the dependencies first:
+
+| Distribution  | Command |
+|---------------|---------|
+| Arch          | `sudo pacman -S cmake git qt6-base libgit2 curl nlohmann-json polkit` |
+| Debian/Ubuntu | `sudo apt install cmake g++ git qt6-base-dev libgit2-dev libcurl4-openssl-dev nlohmann-json3-dev policykit-1` |
+| Fedora        | `sudo dnf install cmake gcc-c++ git qt6-qtbase-devel libgit2-devel libcurl-devel json-devel polkit` |
+
+Then build and install:
+
+```bash
+git clone https://github.com/CreativeCodeCat/makekeeper.git
+cd makekeeper
+make
+sudo make install
 ```
 
 This installs:
-- The binary to `/usr/local/bin/makekeeper`
-- The man page to `/usr/local/share/man/man1/makekeeper.1`
-- Fish shell completions to `/usr/share/fish/vendor_completions.d/makekeeper.fish`
 
-Note: makekeeper automatically uses pkexec for operations requiring root privileges.
+| File | Location |
+|------|----------|
+| Binary | `/usr/local/bin/makekeeper` |
+| Man page | `/usr/local/share/man/man1/makekeeper.1` |
+| Fish completions | `/usr/share/fish/vendor_completions.d/makekeeper.fish` |
+| Desktop entry | `/usr/local/share/applications/makekeeper.desktop` |
+| Icons | `/usr/local/share/icons/hicolor/{128x128,scalable}/apps/` |
+
+Override the location with `PREFIX`, for example `sudo make install PREFIX=/usr`. Remove it with `sudo make uninstall`.
+
+## Quick start
+
+```bash
+makekeeper sync              # download the package catalog
+makekeeper search terminal   # find something to install
+makekeeper install st        # install it
+makekeeper list              # see what's installed
+```
 
 ## Usage
 
-### Install from a package catalog
+```
+makekeeper <COMMAND> [OPTIONS]
+```
+
+| Command | Description |
+|---------|-------------|
+| `install <NAME\|URL\|DIR>` | Install a package from the catalog, a Git URL, or a local directory |
+| `uninstall <NAME>` | Uninstall a package |
+| `update [NAME]` | Update one package, or check all Git-based packages |
+| `list` | List installed packages |
+| `info <NAME>` | Show details about an installed package |
+| `search <QUERY>` | Search the package catalog |
+| `sync` | Download the latest package catalog |
+| `fetch` | Print package statistics (`installed/git (makekeeper)`) |
+| `gui` | Launch the graphical interface |
+
+Run `makekeeper <COMMAND> --help` for help on a single command, and `man makekeeper` for the full manual.
+
+### Installing packages
+
+`install` takes a catalog package name, a Git URL or a path to a directory:
 
 ```bash
-makekeeper install <package-name>
+makekeeper install neofetch                                 # from the catalog
+makekeeper install https://github.com/dylanaraps/pfetch.git # from a Git URL
+makekeeper install ~/src/myproject                          # from a local directory
 ```
 
-Install from the curated package catalog:
+| Option | Description |
+|--------|-------------|
+| `--name NAME` | Register the package under a custom name |
+| `--override` | Reinstall a package that is already installed |
+
+The install steps are:
+
+1. **Resolve the source.** Catalog names are looked up in the synced catalog, URLs are cloned into `/var/lib/makekeeper/cache/<name>`, and directories are used in place.
+2. **Build** with `make` (skipped if a `build/`, `target/` or `bin/` directory already exists).
+3. **Install** with `make install`.
+4. **Record** the package, its source and Git commit in the registry.
+
+### Updating packages
 
 ```bash
-makekeeper install neofetch
+makekeeper update dwm   # pull, clean, rebuild and reinstall dwm if the remote has changes
+makekeeper update       # fetch updates for every Git-based package
 ```
 
-Install with a custom name:
+Packages installed from a local directory with no Git remote are skipped.
+
+### Uninstalling packages
 
 ```bash
-makekeeper install neofetch --name myneofetch
+makekeeper uninstall neofetch
 ```
 
-### Install from a directory
+This runs `make uninstall` in the package's source directory (if it still exists), removes the files and symlinks tracked in the registry, and deletes the registry entry.
+
+### The GUI
 
 ```bash
-makekeeper install --dir /path/to/project
+makekeeper gui
 ```
 
-Install from a specific directory:
+Or launch **MakeKeeper** from your application menu. The GUI has views for an overview, browsing the catalog, pending updates, the installed-package registry and settings.
 
-```bash
-makekeeper install --dir /path/to/project --name myapp
+## File locations
+
+| Path | Purpose |
+|------|---------|
+| `/var/lib/makekeeper/registry.json` | Registry of installed packages |
+| `/var/lib/makekeeper/cache/packages.json` | Synced package catalog |
+| `/var/lib/makekeeper/cache/<name>/` | Cloned sources of Git-based packages |
+
+The catalog is fetched from <https://creativecodecat.github.io/makekeeper/packages.json>. Its source lives in [docs/packages.json](docs/packages.json).
+
+## Security
+
+> [!WARNING]
+> A Makefile can run any command, and MakeKeeper runs `make` and `make install` as root. Only install projects you trust, and read their Makefile first.
+
+- Root access is requested through `pkexec` (polkit), so a polkit authentication agent must be running.
+- Git operations run as your user, so your SSH keys and Git credentials work as usual.
+- Builds are **not** sandboxed.
+
+## Adding a package to the catalog
+
+The catalog is a JSON file. To suggest a package, open a pull request that adds an entry to [docs/packages.json](docs/packages.json):
+
+```json
+{
+  "name": "lf",
+  "url": "https://github.com/gokcehan/lf.git",
+  "description": "Terminal file manager",
+  "category": "file-manager"
+}
 ```
 
-Install from current directory:
-
-```bash
-makekeeper install --name myapp
-```
-
-This will:
-1. Build the project using `make`
-2. Stage the installation to a temporary directory
-3. Check for conflicts with existing files (warns before overwriting)
-4. Ask for confirmation before proceeding
-5. Install to `/opt/makekeeper/apps/<name>`
-6. Create symlinks in `/usr/local/bin` for executables
-7. Create symlinks in `/usr/share/man` for man pages
-
-Skip confirmation with `--yes`:
-
-```bash
-makekeeper install --dir /path/to/project --yes
-```
-
-Override an existing installation:
-
-```bash
-makekeeper install --dir /path/to/project --override
-```
-
-Show detailed installation output with `--verbose`:
-
-```bash
-makekeeper install --dir /path/to/project --verbose
-```
-
-### Install from a git repository
-
-```bash
-makekeeper git <git-url>
-```
-
-This will:
-1. Clone the repository to a cache directory
-2. Build and install the project using the same process as `install`
-3. Keep the repository cached for future updates
-
-You can specify a custom name:
-
-```bash
-makekeeper git <git-url> --name myapp
-```
-
-Or skip confirmation with `--yes`:
-
-```bash
-makekeeper git <git-url> --yes
-```
-
-Override an existing installation:
-
-```bash
-makekeeper git <git-url> --override
-```
-
-Show detailed installation output with `--verbose`:
-
-```bash
-makekeeper git <git-url> --verbose
-```
-
-### Sync package catalog
-
-```bash
-makekeeper sync
-```
-
-Download the latest package catalog from the remote server. This is required before using package-based installation or search.
-
-### Search packages
-
-```bash
-makekeeper search <query>
-```
-
-Search the package catalog for applications matching your query. Searches across package names, descriptions, categories, and URLs.
-
-### Update Git-based installations
-
-```bash
-makekeeper update
-```
-
-Check for updates to all Git-based installations and rebuild any that have changed on the remote repository.
-
-### Fetch statistics
-
-```bash
-makekeeper fetch
-```
-
-Show the count of installed packages and Git-tracked packages.
-
-### Inspect a project
-
-Preview what will be installed without actually installing:
-
-```bash
-makekeeper inspect /path/to/project
-```
-
-This shows:
-- Possible Make targets
-- A dry-run preview of the `make install` command
-
-### List installed applications
-
-```bash
-makekeeper list
-```
-
-### View installation details
-
-```bash
-makekeeper info <name>
-```
-
-Shows the source, prefix, installed files, and managed symlinks.
-
-### Uninstall an application
-
-```bash
-makekeeper uninstall <name>
-```
-
-This removes:
-- Unchanged tracked files
-- Unchanged managed symlinks
-- Empty directories in the installation prefix
-
-Files that have been modified are preserved for manual review.
-
-Skip confirmation with `--yes`:
-
-```bash
-sudo makekeeper uninstall <name> --yes
-```
-
-Show detailed removal output with `--verbose`:
-
-```bash
-sudo makekeeper uninstall <name> --verbose
-```
-
-## Installation Directory Structure
-
-Applications are installed to:
-
-```
-/opt/makekeeper/apps/<name>/
-```
-
-Executable symlinks are created in:
-
-```
-/usr/local/bin/
-```
-
-Installation records are stored in:
-
-```
-/var/lib/makekeeper/<name>.json
-```
-
-## Security Considerations
-
-- makekeeper automatically uses pkexec for operations requiring root privileges
-- Makefiles can execute arbitrary code—only install projects you trust
-- Always inspect a project with `makekeeper inspect` before installing
-- The `make install` step is not sandboxed
-
-## Requirements
-
-- Linux system
-- GNU Make
-- Rust toolchain (for building makekeeper itself)
-- Root/sudo access for installation and management
+The repository must have a `Makefile` at its root with `install` (and ideally `uninstall`) targets.
 
 ## Development
 
-Build the project:
-
 ```bash
-cargo build --release
+make            # configure with CMake and build into ./build
+make clean      # remove the build directory
 ```
 
-Run tests:
-
-```bash
-cargo test
-```
-
-Check code without building:
-
-```bash
-cargo check
-```
-
-The codebase is organized into modules for clarity and maintainability. Each command has its own module in `src/commands/`, and shared functionality is separated into utility modules.
-
-## Project Structure
+The build is configured with CMake (C++17, Qt 6). It exports `compile_commands.json` for editor tooling.
 
 ```
 src/
-├── main.rs           # Entry point and CLI dispatch
-├── cli.rs            # CLI argument definitions
-├── config.rs         # Configuration constants
-├── models.rs         # Data structures (Record, InstalledFile, ManagedLink)
-├── utils.rs          # Utility functions
-├── registry.rs       # Registry operations
-└── commands/         # Command implementations
-    ├── inspect.rs    # Inspect project Makefile
-    ├── install.rs    # Install a project
-    ├── git.rs        # Install from git repository
-    ├── update.rs     # Update Git-based installations
-    ├── list.rs       # List installed applications
-    ├── info.rs       # Show application details
-    ├── uninstall.rs  # Uninstall an application
-    ├── sync.rs       # Sync package catalog
-    ├── search.rs     # Search package catalog
-    └── fetch.rs      # Show installation statistics
+├── main.cpp         # Entry point and command registration
+├── cli.cpp          # Command dispatch, help and version output
+├── config.h         # Paths, catalog URL and version
+├── registry.cpp     # Installed-package registry (JSON)
+├── utils.cpp        # Process execution and pkexec helpers
+├── commands/        # One file per CLI command
+└── gui/             # Qt main window and views
+    └── views/       # overview, packages, updates, registry, settings
 ```
 
 ## License
 
-This project is provided as-is for safer Makefile-based application management.
+MakeKeeper is licensed under the [GNU General Public License v3.0](LICENSE).
