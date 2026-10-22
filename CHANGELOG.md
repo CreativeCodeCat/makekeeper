@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :sparkles: Enhancements:
 
+* Add root privilege checks to install, uninstall, and update commands ([0fb1b40](https://github.com/CreativeCodeCat/makekeeper/commit/0fb1b40))
 * Enhance command-line interface with confirmation prompts and error handling ([5984221](https://github.com/CreativeCodeCat/makekeeper/commit/5984221))
 * Introduce color handling for terminal output and enhance GUI styling with new button styles ([1e0cde3](https://github.com/CreativeCodeCat/makekeeper/commit/1e0cde3))
 * Add AppImage build process to release workflow ([948e0d7](https://github.com/CreativeCodeCat/makekeeper/commit/948e0d7))
