@@ -33,6 +33,12 @@ package() {
     install -Dm755 "build/makekeeper" \
         "$pkgdir/usr/bin/makekeeper"
 
+    install -Dm755 "build/makekeeper-helper" \
+        "$pkgdir/usr/lib/makekeeper/makekeeper-helper"
+
+    sed "s|@HELPER_PATH@|/usr/lib/makekeeper/makekeeper-helper|" makekeeper.policy.in | \
+        install -Dm644 /dev/stdin "$pkgdir/usr/share/polkit-1/actions/io.github.creativecodecat.makekeeper.policy"
+
     install -Dm644 "makekeeper.1" \
         "$pkgdir/usr/share/man/man1/makekeeper.1"
 

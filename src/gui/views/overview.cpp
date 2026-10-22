@@ -1,5 +1,6 @@
 #include "overview.h"
 #include "../../config.h"
+#include "../../utils.h"
 #include "../../registry.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -12,7 +13,6 @@
 #include <QProcess>
 #include <QCoreApplication>
 #include <QSettings>
-#include <QStandardPaths>
 
 namespace makekeeper {
 namespace gui {
@@ -152,7 +152,7 @@ void OverviewView::log_to_terminal(const QString& message) {
 }
 
 void OverviewView::check_auto_sync() {
-    QString config_path = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/makekeeper/settings.conf";
+    QString config_path = QString::fromStdString(utils::user_config_dir()) + "/settings.conf";
     QSettings settings(config_path, QSettings::IniFormat);
     
     if (settings.value("auto_sync", false).toBool()) {
@@ -191,18 +191,9 @@ void OverviewView::run_command(const QString& command) {
     QString binary_path = QCoreApplication::applicationFilePath();
     QStringList args = command.split(' ', Qt::SkipEmptyParts);
     
-    // Commands that need pkexec
-    bool needs_privilege = (command == "sync" || command == "update");
-    
-    if (needs_privilege) {
-        log_to_terminal("Running: pkexec makekeeper " + args.join(' '));
-        QStringList pkexec_args;
-        pkexec_args << binary_path << args;
-        process_->start("pkexec", pkexec_args);
-    } else {
-        log_to_terminal("Running: makekeeper " + args.join(' '));
-        process_->start(binary_path, args);
-    }
+    // Run as the user; makekeeper asks for root through makekeeper-helper only for the steps that need it
+    log_to_terminal("Running: makekeeper " + args.join(' '));
+    process_->start(binary_path, args);
 }
 
 void OverviewView::update_stats() {

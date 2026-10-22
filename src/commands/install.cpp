@@ -93,7 +93,7 @@ int install(const std::vector<std::string>& args) {
                 name = source;
             }
         }
-        source_dir = std::string(config::CACHE_DIR) + "/" + name;
+        source_dir = utils::user_sources_dir() + "/" + name;
     } else if (fs::exists(source)) {
         // It's a directory
         source_dir = fs::absolute(source).string();
@@ -129,7 +129,7 @@ int install(const std::vector<std::string>& args) {
                             if (name.empty()) {
                                 name = source;
                             }
-                            source_dir = std::string(config::CACHE_DIR) + "/" + name;
+                            source_dir = utils::user_sources_dir() + "/" + name;
                             std::cout << "Found package in catalog: " << name << std::endl;
                             break;
                         }
@@ -155,17 +155,20 @@ int install(const std::vector<std::string>& args) {
             // Uninstall first with privilege
             auto existing = registry.get(name);
             if (existing) {
-                // Remove files with privilege
+                // Remove tracked files and symlinks with privilege
                 for (const auto& file : existing->files) {
-                    if (fs::exists(file)) {
-                        utils::exec_command_with_privilege("rm", {"-f", file});
+                    if (fs::exists(file) || utils::is_symlink(file)) {
+                        utils::run_helper({"remove", file});
                     }
                 }
-                // Remove symlinks with privilege
                 for (const auto& symlink : existing->symlinks) {
-                    if (fs::exists(symlink)) {
-                        utils::exec_command_with_privilege("rm", {"-f", symlink});
+                    if (fs::exists(symlink) || utils::is_symlink(symlink)) {
+                        utils::run_helper({"remove", symlink});
                     }
+                }
+                // Delete a root-owned clone left in the cache by an older version
+                if (utils::is_legacy_source(existing->source_dir)) {
+                    utils::run_helper({"remove-source", fs::path(existing->source_dir).filename().string()});
                 }
                 // Remove from registry
                 registry.remove(name);
@@ -180,44 +183,20 @@ int install(const std::vector<std::string>& args) {
         return 1;
     }
 
+    // Cloned packages are stored in a directory named after the package
+    if (!url.empty() && (name == "." || name == ".." || name.find('/') != std::string::npos)) {
+        std::cerr << "Error: Invalid package name '" << name << "'. Use --name to specify." << std::endl;
+        return 1;
+    }
+
     std::cout << "Installing " << name << "..." << std::endl;
 
-    // Clone if URL (run as user for SSH keys)
+    // Clone if URL, as the user so their SSH keys and Git credentials work
     if (!url.empty()) {
-        std::cout << "Cloning repository..." << std::endl;
-        
-        // Clone to temp location first (user-accessible)
-        std::string temp_dir = "/tmp/makekeeper-" + name;
-        
-        // Remove temp dir if it exists
-        if (fs::exists(temp_dir)) {
-            fs::remove_all(temp_dir);
-        }
-        
-        int result = utils::exec_command_exit_code("git", {"clone", url, temp_dir});
-        if (result != 0) {
+        std::cout << "Cloning repository into " << source_dir << "..." << std::endl;
+        if (!utils::clone_source(url, source_dir)) {
             std::cerr << "Error: Failed to clone repository." << std::endl;
             return 1;
-        }
-        
-        // Ensure cache directory exists with privilege
-        if (!fs::exists(config::CACHE_DIR)) {
-            if (!utils::is_root()) {
-                utils::exec_command_with_privilege("mkdir", {"-p", config::CACHE_DIR});
-            }
-        }
-        
-        // Move to final location with privilege
-        if (!utils::is_root()) {
-            utils::exec_command_with_privilege("mv", {temp_dir, source_dir});
-        } else {
-            try {
-                fs::rename(temp_dir, source_dir);
-            } catch (const fs::filesystem_error& e) {
-                // Cross-device link error, use copy + remove
-                utils::exec_command("cp", {"-r", temp_dir, source_dir});
-                fs::remove_all(temp_dir);
-            }
         }
     }
 
@@ -238,7 +217,7 @@ int install(const std::vector<std::string>& args) {
     int result;
     if (!already_built) {
         std::cout << "Building..." << std::endl;
-        result = utils::exec_command_with_privilege("make", {"-C", source_dir});
+        result = utils::exec_as_user("make", {"-C", source_dir});
         if (result != 0) {
             std::cerr << "Error: Build failed." << std::endl;
             return 1;
@@ -249,7 +228,7 @@ int install(const std::vector<std::string>& args) {
 
     // Install
     std::cout << "Installing..." << std::endl;
-    result = utils::exec_command_with_privilege("make", {"-C", source_dir, "install"});
+    result = utils::run_helper({"make", source_dir, "install"});
     if (result != 0) {
         std::cerr << "Error: Install failed." << std::endl;
         return 1;
@@ -262,17 +241,11 @@ int install(const std::vector<std::string>& args) {
     // Check if source directory is a git repository
     if (fs::exists(source_dir + "/.git")) {
         // Get commit hash
-        commit_hash = utils::exec_command("git", {"-C", source_dir, "rev-parse", "HEAD"});
-        if (!commit_hash.empty() && commit_hash.back() == '\n') {
-            commit_hash.pop_back();
-        }
+        commit_hash = utils::git_query(source_dir, {"rev-parse", "HEAD"});
 
         // Get remote URL if not already set
         if (url.empty()) {
-            git_url = utils::exec_command("git", {"-C", source_dir, "remote", "get-url", "origin"});
-            if (!git_url.empty() && git_url.back() == '\n') {
-                git_url.pop_back();
-            }
+            git_url = utils::git_query(source_dir, {"remote", "get-url", "origin"});
         } else {
             git_url = url;
         }

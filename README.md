@@ -22,7 +22,7 @@ MakeKeeper wraps that workflow. It clones or locates the project, builds and ins
 - **Git-aware updates**: pulls, rebuilds and reinstalls packages installed from a Git repository
 - **Package catalog**: sync and search a curated list of Makefile-based applications
 - **Desktop GUI**: browse, install and manage packages from a Qt 6 interface
-- **Privilege escalation**: asks for root through `pkexec` only for the steps that need it
+- **One password prompt per operation**: a small privileged helper does the root-only steps, authorized once through polkit
 
 ## Installation
 
@@ -62,6 +62,8 @@ This installs:
 | File | Location |
 |------|----------|
 | Binary | `/usr/local/bin/makekeeper` |
+| Privileged helper | `/usr/local/lib/makekeeper/makekeeper-helper` |
+| polkit policy | `/usr/share/polkit-1/actions/io.github.creativecodecat.makekeeper.policy` |
 | Man page | `/usr/local/share/man/man1/makekeeper.1` |
 | Fish completions | `/usr/share/fish/vendor_completions.d/makekeeper.fish` |
 | Desktop entry | `/usr/local/share/applications/makekeeper.desktop` |
@@ -115,9 +117,9 @@ makekeeper install ~/src/myproject                          # from a local direc
 
 The install steps are:
 
-1. **Resolve the source.** Catalog names are looked up in the synced catalog, URLs are cloned into `/var/lib/makekeeper/cache/<name>`, and directories are used in place.
-2. **Build** with `make` (skipped if a `build/`, `target/` or `bin/` directory already exists).
-3. **Install** with `make install`.
+1. **Resolve the source.** Catalog names are looked up in the synced catalog, URLs are cloned as your user into `~/.local/share/makekeeper/sources/<name>`, and directories are used in place.
+2. **Build** with `make`, as your user (skipped if a `build/`, `target/` or `bin/` directory already exists).
+3. **Install** with `make install`, as root.
 4. **Record** the package, its source and Git commit in the registry.
 
 ### Updating packages
@@ -128,6 +130,8 @@ makekeeper update       # fetch updates for every Git-based package
 ```
 
 Packages installed from a local directory with no Git remote are skipped.
+
+Older versions kept root-owned clones in `/var/lib/makekeeper/cache/`. The next `update` of such a package clones it again into your sources directory and deletes the old copy.
 
 ### Uninstalling packages
 
@@ -151,16 +155,18 @@ Or launch **MakeKeeper** from your application menu. The GUI has views for an ov
 |------|---------|
 | `/var/lib/makekeeper/registry.json` | Registry of installed packages |
 | `/var/lib/makekeeper/cache/packages.json` | Synced package catalog |
-| `/var/lib/makekeeper/cache/<name>/` | Cloned sources of Git-based packages |
+| `~/.local/share/makekeeper/sources/<name>/` | Your clones of Git-based packages (deleted on uninstall) |
 
 The catalog is fetched from <https://creativecodecat.github.io/makekeeper/packages.json>. Its source lives in [docs/packages.json](https://github.com/CreativeCodeCat/makekeeper/blob/docs/packages.json).
 
 ## Security
 
 > [!WARNING]
-> A Makefile can run any command, and MakeKeeper runs `make` and `make install` as root. Only install projects you trust, and read their Makefile first.
+> A Makefile can run any command, and MakeKeeper runs `make install` and `make uninstall` as root. Only install projects you trust, and read their Makefile first.
 
-- Root access is requested through `pkexec` (polkit), so a polkit authentication agent must be running.
+- MakeKeeper itself runs as your user. Only `makekeeper-helper` runs as root, through `pkexec`, so a polkit authentication agent must be running.
+- The helper can only do a fixed set of things: run `make`, `make install`, `make uninstall` or `make clean` in a project, remove files the registry says MakeKeeper installed, and write MakeKeeper's own state in `/var/lib/makekeeper`.
+- polkit remembers your authorization for a few minutes, so one install or uninstall asks for your password once. The AppImage has no polkit policy installed, so it may ask once per step.
 - Git operations run as your user, so your SSH keys and Git credentials work as usual.
 - Builds are **not** sandboxed.
 
@@ -194,8 +200,9 @@ src/
 ├── cli.cpp          # Command dispatch, help and version output
 ├── config.h         # Paths, catalog URL and version
 ├── registry.cpp     # Installed-package registry (JSON)
-├── utils.cpp        # Process execution and pkexec helpers
+├── utils.cpp        # Process execution and running makekeeper-helper
 ├── commands/        # One file per CLI command
+├── helper/          # makekeeper-helper, the only code that runs as root
 └── gui/             # Qt main window and views
     └── views/       # overview, packages, updates, registry, settings
 ```

@@ -92,8 +92,21 @@ target_link_libraries(makekeeper
     Qt6::Network
 )
 
+# Privileged helper, run through pkexec. It only needs the standard library and
+# nlohmann_json, and links libstdc++ statically so it still runs when copied out of the AppImage.
+add_executable(makekeeper-helper src/helper/main.cpp)
+target_link_options(makekeeper-helper PRIVATE -static-libstdc++ -static-libgcc)
+set_target_properties(makekeeper-helper PROPERTIES AUTOMOC OFF AUTORCC OFF AUTOUIC OFF)
+
+# polkit policy, generated for the install location of the helper
+set(MAKEKEEPER_HELPER_INSTALL_PATH "/usr/local/lib/makekeeper/makekeeper-helper")
+set(HELPER_PATH "${MAKEKEEPER_HELPER_INSTALL_PATH}")
+configure_file(makekeeper.policy.in ${CMAKE_BINARY_DIR}/io.github.creativecodecat.makekeeper.policy @ONLY)
+
 # Installation
 install(TARGETS makekeeper DESTINATION /usr/local/bin)
+install(TARGETS makekeeper-helper DESTINATION /usr/local/lib/makekeeper)
+install(FILES ${CMAKE_BINARY_DIR}/io.github.creativecodecat.makekeeper.policy DESTINATION /usr/share/polkit-1/actions)
 install(FILES makekeeper.1 DESTINATION /usr/local/share/man/man1)
 install(FILES makekeeper.desktop DESTINATION /usr/local/share/applications)
 install(FILES makekeeper.svg DESTINATION /usr/local/share/icons/hicolor/scalable/apps)

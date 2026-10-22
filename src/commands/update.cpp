@@ -10,6 +10,84 @@ namespace fs = std::filesystem;
 namespace makekeeper {
 namespace commands {
 
+enum class UpdateResult { Updated, UpToDate, Failed };
+
+// Older versions kept clones in /var/lib/makekeeper/cache, owned by root. Clone the package
+// again into the user's sources directory, delete the old copy and point the record at the new one.
+static bool migrate_legacy_source(registry::Record& record, registry::Registry& registry, const std::string& indent) {
+    if (!utils::is_legacy_source(record.source_dir)) {
+        return true;
+    }
+
+    std::string old_dir = record.source_dir;
+    std::string new_dir = utils::user_sources_dir() + "/" + record.name;
+    std::cout << indent << "Moving source from " << old_dir << " to " << new_dir << "..." << std::endl;
+
+    if (!utils::clone_source(record.url, new_dir)) {
+        std::cerr << indent << "Error: Failed to clone repository." << std::endl;
+        return false;
+    }
+    if (utils::run_helper({"remove-source", fs::path(old_dir).filename().string()}) != 0) {
+        std::cerr << indent << "Warning: Failed to remove " << old_dir << std::endl;
+    }
+
+    record.source_dir = new_dir;
+    registry.update(record.name, record);
+    return true;
+}
+
+static UpdateResult update_package(registry::Record record, registry::Registry& registry, const std::string& indent) {
+    if (!migrate_legacy_source(record, registry, indent)) {
+        return UpdateResult::Failed;
+    }
+
+    // Fetch changes
+    if (utils::git_update_source(record.source_dir, "fetch") != 0) {
+        std::cerr << indent << "Error: Failed to fetch updates." << std::endl;
+        return UpdateResult::Failed;
+    }
+
+    // Up to date when nothing new is upstream and the installed commit is the checked-out one
+    // (a freshly migrated clone is already at the latest commit, but the installed build may not be)
+    std::string status = utils::git_query(record.source_dir, {"status", "-sb"});
+    std::string head = utils::git_query(record.source_dir, {"rev-parse", "HEAD"});
+    bool behind = status.find("behind") != std::string::npos;
+    bool installed_is_head = record.commit_hash.empty() || record.commit_hash == head;
+    if (!behind && installed_is_head) {
+        return UpdateResult::UpToDate;
+    }
+
+    // Pull changes
+    if (behind && utils::git_update_source(record.source_dir, "pull") != 0) {
+        std::cerr << indent << "Error: Failed to pull updates." << std::endl;
+        return UpdateResult::Failed;
+    }
+
+    // Rebuild as the user
+    std::cout << indent << "Rebuilding..." << std::endl;
+    if (utils::exec_as_user("make", {"-C", record.source_dir, "clean"}) != 0) {
+        std::cerr << indent << "Error: Clean failed." << std::endl;
+        return UpdateResult::Failed;
+    }
+    if (utils::exec_as_user("make", {"-C", record.source_dir}) != 0) {
+        std::cerr << indent << "Error: Build failed." << std::endl;
+        return UpdateResult::Failed;
+    }
+
+    // Reinstall with privilege
+    std::cout << indent << "Reinstalling..." << std::endl;
+    if (utils::run_helper({"make", record.source_dir, "install"}) != 0) {
+        std::cerr << indent << "Error: Install failed." << std::endl;
+        return UpdateResult::Failed;
+    }
+
+    // Update commit hash
+    record.commit_hash = utils::git_query(record.source_dir, {"rev-parse", "HEAD"});
+    registry.update(record.name, record);
+
+    return UpdateResult::Updated;
+}
+
 int update(const std::vector<std::string>& args) {
     // Check for help flag
     if (!args.empty() && (args[0] == "--help" || args[0] == "-h")) {
@@ -51,63 +129,18 @@ int update(const std::vector<std::string>& args) {
 
             std::cout << "Updating " << record.name << "..." << std::endl;
 
-            // Fetch changes (run as user for SSH keys)
-            int result = utils::exec_command_exit_code("git", {"-C", record.source_dir, "fetch"});
-            if (result != 0) {
-                std::cerr << "  Error: Failed to fetch updates." << std::endl;
-                continue;
+            switch (update_package(record, registry, "  ")) {
+                case UpdateResult::Updated:
+                    std::cout << "  ✓ Updated " << record.name << std::endl;
+                    updated_count++;
+                    break;
+                case UpdateResult::UpToDate:
+                    std::cout << "  Already up to date." << std::endl;
+                    skipped_count++;
+                    break;
+                case UpdateResult::Failed:
+                    break;
             }
-
-            // Check if there are changes
-            std::string status = utils::exec_command("git", {"-C", record.source_dir, "status", "-sb"});
-
-            // Check if ahead of origin
-            if (status.find("behind") == std::string::npos) {
-                std::cout << "  Already up to date." << std::endl;
-                skipped_count++;
-                continue;
-            }
-
-            // Pull changes (run as user for SSH keys)
-            result = utils::exec_command_exit_code("git", {"-C", record.source_dir, "pull"});
-            if (result != 0) {
-                std::cerr << "  Error: Failed to pull updates." << std::endl;
-                continue;
-            }
-
-            // Rebuild
-            std::cout << "  Rebuilding..." << std::endl;
-            result = utils::exec_command_with_privilege("make", {"-C", record.source_dir, "clean"});
-            if (result != 0) {
-                std::cerr << "  Error: Clean failed." << std::endl;
-                continue;
-            }
-            result = utils::exec_command_with_privilege("make", {"-C", record.source_dir});
-            if (result != 0) {
-                std::cerr << "  Error: Build failed." << std::endl;
-                continue;
-            }
-
-            // Reinstall
-            std::cout << "  Reinstalling..." << std::endl;
-            result = utils::exec_command_with_privilege("make", {"-C", record.source_dir, "install"});
-            if (result != 0) {
-                std::cerr << "  Error: Install failed." << std::endl;
-                continue;
-            }
-
-            // Update commit hash
-            std::string new_hash = utils::exec_command("git", {"-C", record.source_dir, "rev-parse", "HEAD"});
-            if (!new_hash.empty() && new_hash.back() == '\n') {
-                new_hash.pop_back();
-            }
-
-            registry::Record updated_record = record;
-            updated_record.commit_hash = new_hash;
-            registry.update(record.name, updated_record);
-
-            std::cout << "  ✓ Updated " << record.name << std::endl;
-            updated_count++;
         }
 
         std::cout << std::endl;
@@ -134,63 +167,18 @@ int update(const std::vector<std::string>& args) {
 
     std::cout << "Updating " << name << "..." << std::endl;
 
-    // Fetch changes (run as user for SSH keys)
-    int result = utils::exec_command_exit_code("git", {"-C", record->source_dir, "fetch"});
-    if (result != 0) {
-        std::cerr << "Error: Failed to fetch updates." << std::endl;
-        return 1;
+    switch (update_package(*record, registry, "")) {
+        case UpdateResult::Updated:
+            std::cout << "✓ Updated " << name << std::endl;
+            return 0;
+        case UpdateResult::UpToDate:
+            std::cout << name << " is already up to date." << std::endl;
+            return 0;
+        case UpdateResult::Failed:
+            return 1;
     }
 
-    // Check if there are changes
-    std::string status = utils::exec_command("git", {"-C", record->source_dir, "status", "-sb"});
-
-    // Check if ahead of origin
-    if (status.find("behind") == std::string::npos) {
-        std::cout << name << " is already up to date." << std::endl;
-        return 0;
-    }
-
-    // Pull changes (run as user for SSH keys)
-    result = utils::exec_command_exit_code("git", {"-C", record->source_dir, "pull"});
-    if (result != 0) {
-        std::cerr << "Error: Failed to pull updates." << std::endl;
-        return 1;
-    }
-
-    // Rebuild
-    std::cout << "Rebuilding..." << std::endl;
-    result = utils::exec_command_with_privilege("make", {"-C", record->source_dir, "clean"});
-    if (result != 0) {
-        std::cerr << "Error: Clean failed." << std::endl;
-        return 1;
-    }
-    result = utils::exec_command_with_privilege("make", {"-C", record->source_dir});
-    if (result != 0) {
-        std::cerr << "Error: Build failed." << std::endl;
-        return 1;
-    }
-
-    // Reinstall
-    std::cout << "Reinstalling..." << std::endl;
-    result = utils::exec_command_with_privilege("make", {"-C", record->source_dir, "install"});
-    if (result != 0) {
-        std::cerr << "Error: Install failed." << std::endl;
-        return 1;
-    }
-
-    // Update commit hash
-    std::string new_hash = utils::exec_command("git", {"-C", record->source_dir, "rev-parse", "HEAD"});
-    if (!new_hash.empty() && new_hash.back() == '\n') {
-        new_hash.pop_back();
-    }
-
-    registry::Record updated_record = *record;
-    updated_record.commit_hash = new_hash;
-    registry.update(name, updated_record);
-
-    std::cout << "✓ Updated " << name << std::endl;
-
-    return 0;
+    return 1;
 }
 
 } // namespace commands

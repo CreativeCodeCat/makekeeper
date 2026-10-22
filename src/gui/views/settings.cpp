@@ -1,5 +1,6 @@
 #include "settings.h"
 #include "../../config.h"
+#include "../../utils.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -12,7 +13,7 @@
 #include <QWidget>
 #include <QSettings>
 #include <QDir>
-#include <QStandardPaths>
+#include <QFileInfo>
 #include <Qt>
 #include <QObject>
 
@@ -124,7 +125,7 @@ void SettingsView::refresh() {
 }
 
 void SettingsView::load_settings() {
-    QString config_path = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/makekeeper/settings.conf";
+    QString config_path = QString::fromStdString(utils::user_config_dir()) + "/settings.conf";
     QSettings settings(config_path, QSettings::IniFormat);
     
     // Block signals to prevent triggering save during load
@@ -143,7 +144,9 @@ void SettingsView::load_settings() {
 }
 
 void SettingsView::save_settings() {
-    QString config_dir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/makekeeper";
+    QString config_dir = QString::fromStdString(utils::user_config_dir());
+    QString parent_dir = QFileInfo(config_dir).path();
+    bool parent_existed = QDir(parent_dir).exists();
     QDir().mkpath(config_dir);
     
     QString config_path = config_dir + "/settings.conf";
@@ -154,6 +157,13 @@ void SettingsView::save_settings() {
     settings.setValue("confirm_install", confirm_install_->isChecked());
     
     settings.sync();
+
+    // When running as root via sudo/pkexec, keep these files owned by the real user
+    if (!parent_existed) {
+        utils::chown_to_invoking_user(parent_dir.toStdString());
+    }
+    utils::chown_to_invoking_user(config_dir.toStdString());
+    utils::chown_to_invoking_user(config_path.toStdString());
 }
 
 } // namespace views

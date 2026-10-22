@@ -45,31 +45,41 @@ int uninstall(const std::vector<std::string>& args) {
 
     // Run make uninstall if source dir exists
     if (!record->source_dir.empty() && fs::exists(record->source_dir)) {
-        utils::exec_command_with_privilege("make", {"-C", record->source_dir, "uninstall"});
+        utils::run_helper({"make", record->source_dir, "uninstall"});
     }
 
-    // Remove all installed files
+    // Remove all installed files with privilege
     for (const auto& file : record->files) {
-        if (fs::exists(file)) {
-            try {
-                // Use pkexec for files in system directories
-                if (file.find("/usr/") == 0 || file.find("/var/") == 0) {
-                    utils::exec_command_with_privilege("rm", {"-f", file});
-                } else {
-                    fs::remove(file);
-                }
+        if (fs::exists(file) || utils::is_symlink(file)) {
+            if (utils::run_helper({"remove", file}) == 0) {
                 std::cout << "  Removed: " << file << std::endl;
-            } catch (const std::exception& e) {
-                std::cerr << "  Warning: Failed to remove " << file << ": " << e.what() << std::endl;
+            } else {
+                std::cerr << "  Warning: Failed to remove " << file << std::endl;
             }
         }
     }
 
-    // Remove symlinks
+    // Remove symlinks with privilege
     for (const auto& symlink : record->symlinks) {
         if (utils::is_symlink(symlink)) {
-            utils::remove_symlink(symlink);
-            std::cout << "  Removed symlink: " << symlink << std::endl;
+            if (utils::run_helper({"remove", symlink}) == 0) {
+                std::cout << "  Removed symlink: " << symlink << std::endl;
+            } else {
+                std::cerr << "  Warning: Failed to remove " << symlink << std::endl;
+            }
+        }
+    }
+
+    // Delete the clone MakeKeeper made for this package; directories installed from are left alone
+    if (utils::is_legacy_source(record->source_dir)) {
+        if (utils::run_helper({"remove-source", fs::path(record->source_dir).filename().string()}) == 0) {
+            std::cout << "  Removed source: " << record->source_dir << std::endl;
+        }
+    } else if (fs::path(record->source_dir).parent_path() == fs::path(utils::user_sources_dir())) {
+        std::error_code ec;
+        fs::remove_all(record->source_dir, ec);
+        if (!ec) {
+            std::cout << "  Removed source: " << record->source_dir << std::endl;
         }
     }
 
@@ -79,7 +89,7 @@ int uninstall(const std::vector<std::string>& args) {
     // If uninstalling makekeeper itself, remove registry and cache
     if (name == "makekeeper") {
         std::cout << "  Removing registry..." << std::endl;
-        utils::exec_command_with_privilege("rm", {"-rf", config::REGISTRY_DIR});
+        utils::run_helper({"purge"});
     }
 
     std::cout << "✓ Uninstalled " << name << std::endl;

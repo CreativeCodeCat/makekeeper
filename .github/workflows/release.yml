@@ -57,7 +57,7 @@ jobs:
         VERSION=$(grep -oP 'project\(makekeeper VERSION \K[0-9.]+' CMakeLists.txt)
         mkdir -p releases/deb/DEBIAN
         make install DESTDIR="$PWD/releases/deb"
-        strip releases/deb/usr/local/bin/makekeeper
+        strip releases/deb/usr/local/bin/makekeeper releases/deb/usr/local/lib/makekeeper/makekeeper-helper
 
         # Work out shared library dependencies from the built binary
         mkdir -p debian && touch debian/control
@@ -177,6 +177,8 @@ jobs:
 
         %files
         /usr/local/bin/makekeeper
+        /usr/local/lib/makekeeper/makekeeper-helper
+        /usr/share/polkit-1/actions/io.github.creativecodecat.makekeeper.policy
         /usr/local/share/man/man1/makekeeper.1
         /usr/local/share/applications/makekeeper.desktop
         /usr/local/share/icons/hicolor/128x128/apps/makekeeper-128.png

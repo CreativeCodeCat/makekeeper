@@ -11,6 +11,18 @@ namespace utils {
 // Check if running as root
 bool is_root();
 
+// Get the makekeeper config directory of the user who ran the command (follows sudo and pkexec)
+std::string user_config_dir();
+
+// Get the directory holding the user's package source clones (follows sudo and pkexec)
+std::string user_sources_dir();
+
+// Whether a source directory is a root-owned clone in /var/lib/makekeeper/cache from an older version
+bool is_legacy_source(const std::string& dir);
+
+// Give a path to the user who ran the command when running as root via sudo or pkexec
+void chown_to_invoking_user(const std::string& path);
+
 // Execute command and return output
 std::string exec_command(const std::string& command);
 
@@ -20,8 +32,20 @@ std::string exec_command(const std::string& command, const std::vector<std::stri
 // Execute command and return exit code
 int exec_command_exit_code(const std::string& command, const std::vector<std::string>& args = {});
 
-// Execute command with pkexec if not root
-int exec_command_with_privilege(const std::string& command, const std::vector<std::string>& args = {});
+// Execute command as the real user, dropping root when running under sudo or pkexec
+int exec_as_user(const std::string& command, const std::vector<std::string>& args = {});
+
+// Run a makekeeper-helper operation as root, asking for permission through pkexec when needed
+int run_helper(const std::vector<std::string>& args, const std::string& input = "");
+
+// Clone a repository as the real user, replacing anything already at dir
+bool clone_source(const std::string& url, const std::string& dir);
+
+// Run git fetch or pull in a package's source directory as the real user
+int git_update_source(const std::string& dir, const std::string& action);
+
+// Run a read-only git command in a package's source directory and return its output
+std::string git_query(const std::string& dir, const std::vector<std::string>& args);
 
 // Get current timestamp
 std::string get_timestamp();
