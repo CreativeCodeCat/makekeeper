@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :sparkles: Enhancements:
 
+* Check for a newer package catalog when the GUI opens ([35185a6](https://github.com/CreativeCodeCat/makekeeper/commit/35185a6))
 * Add per-package build_flags support from the package catalog ([b8cfdb4](https://github.com/CreativeCodeCat/makekeeper/commit/b8cfdb4))
 * Add CMake support alongside Makefile-based package installs ([e326592](https://github.com/CreativeCodeCat/makekeeper/commit/e326592))
 
