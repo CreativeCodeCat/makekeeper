@@ -12,7 +12,7 @@ namespace makekeeper {
 namespace gui {
 
 MakekeeperWindow::MakekeeperWindow(QWidget* parent) : QMainWindow(parent) {
-    setWindowTitle(QString("MakeKeeper | Package Manager v%1").arg(config::VERSION));
+    setWindowTitle(QString("MakeKeeper | Package Manager %1").arg(config::VERSION));
     setFixedSize(1100, 650);
 
     apply_dark_theme();
@@ -185,7 +185,7 @@ void MakekeeperWindow::setup_ui() {
     
     status_layout->addStretch();
     
-    QLabel* version_label = new QLabel("v0.1.0", this);
+    QLabel* version_label = new QLabel("0.1.0", this);
     version_label->setStyleSheet("color: palette(text-disabled); font-size: 10px; font-weight: 500;");
     status_layout->addWidget(version_label);
 

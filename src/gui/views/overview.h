@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QTextEdit>
 #include <QProcess>
+#include <QSettings>
 
 namespace makekeeper {
 namespace gui {
@@ -23,6 +24,7 @@ private:
     void update_stats();
     void log_to_terminal(const QString& message);
     void run_command(const QString& command);
+    void check_auto_sync();
 
     QLabel* total_installed_label_;
     QLabel* git_repos_label_;

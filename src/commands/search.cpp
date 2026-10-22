@@ -8,6 +8,15 @@
 
 using json = nlohmann::json;
 
+// ANSI color codes
+namespace colors {
+    const char* reset = "\033[0m";
+    const char* green = "\033[38;2;102;204;102m";  // #66cc66
+    const char* cyan = "\033[38;2;61;174;233m";    // #3DAEE9
+    const char* gray = "\033[38;2;127;133;139m";    // #7F858B
+    const char* yellow = "\033[38;2;238;201;85m";  // #EEC955
+}
+
 namespace makekeeper {
 namespace commands {
 
@@ -78,19 +87,19 @@ int search(const std::vector<std::string>& args) {
             if (name_lower.find(query_lower) != std::string::npos ||
                 desc_lower.find(query_lower) != std::string::npos) {
                 if (!found) {
-                    std::cout << "Search results for '" << query << "':" << std::endl;
+                    std::cout << "Search results for '" << colors::yellow << query << colors::reset << "':" << std::endl;
                     std::cout << std::endl;
                     found = true;
                 }
-                std::cout << "  " << pkg.name << " v" << pkg.latest_version << std::endl;
+                std::cout << "  " << colors::green << pkg.name << colors::reset << " " << colors::cyan << pkg.latest_version << colors::reset << std::endl;
                 std::cout << "    " << pkg.description << std::endl;
-                std::cout << "    Category: " << pkg.category << std::endl;
+                std::cout << "    Category: " << colors::gray << pkg.category << colors::reset << std::endl;
                 std::cout << std::endl;
             }
         }
 
         if (!found) {
-            std::cout << "No packages found matching '" << query << "'" << std::endl;
+            std::cout << "No packages found matching '" << colors::yellow << query << colors::reset << "'" << std::endl;
         }
 
         return 0;

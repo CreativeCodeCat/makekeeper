@@ -254,7 +254,7 @@ void PackagesView::on_package_selected() {
     ).arg(name, version, description, url, status_color, status_text, action_buttons);
 
     details_panel_->setHtml(details);
-    terminal_panel_->append(QString("> Selected: %1 %2").arg(name, version));
+    terminal_panel_->append(QString("> Selected: %1").arg(name));
 }
 
 } // namespace views

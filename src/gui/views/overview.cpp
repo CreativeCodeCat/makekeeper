@@ -11,6 +11,8 @@
 #include <QObject>
 #include <QProcess>
 #include <QCoreApplication>
+#include <QSettings>
+#include <QStandardPaths>
 
 namespace makekeeper {
 namespace gui {
@@ -19,6 +21,7 @@ namespace views {
 OverviewView::OverviewView(QWidget* parent) : BaseView(parent), process_(nullptr) {
     setup_ui();
     update_stats();
+    check_auto_sync();
 }
 
 void OverviewView::setup_ui() {
@@ -146,6 +149,16 @@ void OverviewView::setup_ui() {
 
 void OverviewView::log_to_terminal(const QString& message) {
     terminal_panel_->append("> " + message);
+}
+
+void OverviewView::check_auto_sync() {
+    QString config_path = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/makekeeper/settings.conf";
+    QSettings settings(config_path, QSettings::IniFormat);
+    
+    if (settings.value("auto_sync", false).toBool()) {
+        log_to_terminal("Auto-sync enabled, running sync...");
+        run_command("sync");
+    }
 }
 
 void OverviewView::run_command(const QString& command) {
