@@ -66,6 +66,11 @@ int uninstall(const std::vector<std::string>& args) {
         return 1;
     }
 
+    // Stop now if root can't be had; otherwise the files would stay while the clone was deleted
+    if (!utils::can_get_root()) {
+        return 1;
+    }
+
     // MakeKeeper deletes the clone it made for this package; directories installed from are left alone
     bool legacy_source = utils::is_legacy_source(record->source_dir);
     bool managed_source = legacy_source ||
@@ -113,7 +118,12 @@ int uninstall(const std::vector<std::string>& args) {
 
     // Run make uninstall if source dir exists
     if (has_source) {
-        utils::run_helper({"make", record->source_dir, "uninstall"});
+        int result = utils::run_helper({"make", record->source_dir, "uninstall"});
+        // pkexec exits with 126 or 127 when permission wasn't given; stop before removing anything
+        if (result == 126 || result == 127) {
+            std::cerr << "Error: Didn't get permission to uninstall " << name << ". Nothing was removed." << std::endl;
+            return 1;
+        }
     }
 
     // Remove all installed files with privilege
@@ -152,7 +162,10 @@ int uninstall(const std::vector<std::string>& args) {
     }
 
     // Remove from registry
-    registry.remove(name);
+    if (!registry.remove(name)) {
+        std::cerr << "Error: Removed " << name << "'s files, but couldn't update the registry." << std::endl;
+        return 1;
+    }
 
     // If uninstalling makekeeper itself, remove registry and cache
     if (name == "makekeeper") {

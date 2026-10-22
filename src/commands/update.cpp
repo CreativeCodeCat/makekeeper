@@ -117,6 +117,11 @@ int update(const std::vector<std::string>& args) {
         return 0;
     }
 
+    // Stop now if root can't be had, rather than after pulling and rebuilding
+    if (!utils::can_get_root()) {
+        return 1;
+    }
+
     // If args is empty, update all packages
     if (args.empty()) {
         std::cout << "Updating all packages..." << std::endl;

@@ -176,6 +176,11 @@ int install(const std::vector<std::string>& args) {
         return 1;
     }
 
+    // Stop now if root can't be had, rather than after asking and building
+    if (!utils::can_get_root()) {
+        return 1;
+    }
+
     // Show what is about to happen and ask first, unless --yes was given
     if (!yes) {
         std::ostringstream summary;

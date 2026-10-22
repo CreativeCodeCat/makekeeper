@@ -35,6 +35,11 @@ int exec_command_exit_code(const std::string& command, const std::vector<std::st
 // Execute command as the real user, dropping root when running under sudo or pkexec
 int exec_as_user(const std::string& command, const std::vector<std::string>& args = {});
 
+// Whether this process can become root through pkexec. When it can't (no_new_privs is set, as in
+// sandboxes and some IDE or assistant terminals), prints why and returns false, so commands can
+// stop before changing anything
+bool can_get_root();
+
 // Run a makekeeper-helper operation as root, asking for permission through pkexec when needed
 int run_helper(const std::vector<std::string>& args, const std::string& input = "");
 

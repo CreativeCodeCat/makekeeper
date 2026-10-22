@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/prctl.h>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
@@ -259,6 +260,19 @@ static std::string copy_helper_out_of_appimage(const std::string& helper) {
     return target;
 }
 
+bool can_get_root() {
+    // With no_new_privs set, the kernel ignores pkexec's setuid bit and it fails with a cryptic
+    // "pkexec must be setuid root". Sandboxes and some IDE or assistant terminals set it, and every
+    // process started from them inherits it, so explain instead
+    if (!is_root() && prctl(PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0) == 1) {
+        std::cerr << "Error: Can't get root privileges from here. MakeKeeper was started from a sandboxed" << std::endl;
+        std::cerr << "       environment (no_new_privs is set), which stops pkexec from working." << std::endl;
+        std::cerr << "       Run MakeKeeper from a normal terminal or your application menu instead." << std::endl;
+        return false;
+    }
+    return true;
+}
+
 int run_helper(const std::vector<std::string>& args, const std::string& input) {
     static std::string helper = [] {
         std::string path = find_helper();
@@ -271,6 +285,10 @@ int run_helper(const std::vector<std::string>& args, const std::string& input) {
     if (helper.empty()) {
         std::cerr << "Error: makekeeper-helper not found. Reinstall MakeKeeper." << std::endl;
         return 127;
+    }
+
+    if (!can_get_root()) {
+        return 126;
     }
 
     std::vector<std::string> command;
