@@ -35,6 +35,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :broom: Maintenance & Cleanup:
 
+* Bump version to 1.0.0 ([f2982e7](https://github.com/CreativeCodeCat/makekeeper/commit/f2982e7))
 * Update build scripts and dependencies for improved packaging and installation ([1c353ea](https://github.com/CreativeCodeCat/makekeeper/commit/1c353ea))
 
 ## [0.1.0 - MakeKeeper](https://github.com/CreativeCodeCat/makekeeper/tree/v0.1.0) - (20, October 2026)
