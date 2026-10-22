@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file. See [conven
 
 ### :wrench: Code Quality:
 
+* Refactor MakeKeeper to use a helper for privileged operations ([b9691c2](https://github.com/CreativeCodeCat/makekeeper/commit/b9691c2))
 * Refactor README.md for clarity and improved structure ([c3ba270](https://github.com/CreativeCodeCat/makekeeper/commit/c3ba270))
 * Refactor UI styles for consistency and improved theming ([8d95c59](https://github.com/CreativeCodeCat/makekeeper/commit/8d95c59))
 * Refactor GUI structure and enhance CMake configuration ([2a3b19f](https://github.com/CreativeCodeCat/makekeeper/commit/2a3b19f))
