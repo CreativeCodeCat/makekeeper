@@ -452,7 +452,7 @@ bool download_file(const std::string& url, const std::string& output_path) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "makekeeper/0.1.0");
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, (std::string("makekeeper/") + config::VERSION).c_str());
 
     CURLcode res = curl_easy_perform(curl);
 

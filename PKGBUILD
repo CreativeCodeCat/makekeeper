@@ -1,6 +1,6 @@
 # Maintainer: makekeeper contributors
 pkgname=makekeeper
-pkgver=0.1.0
+pkgver=1.0.0
 pkgrel=1
 pkgdesc="A safer installer for Makefile-based Linux applications"
 arch=('x86_64')

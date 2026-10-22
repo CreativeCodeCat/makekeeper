@@ -143,7 +143,8 @@ jobs:
 
     steps:
     - name: Install build dependencies
-      run: dnf install -y cmake gcc-c++ make git pkgconf-pkg-config qt6-qtbase-devel libgit2-devel libcurl-devel json-devel rpm-build
+      # libstdc++-static: makekeeper-helper links the C++ runtime statically
+      run: dnf install -y cmake gcc-c++ libstdc++-static make git pkgconf-pkg-config qt6-qtbase-devel libgit2-devel libcurl-devel json-devel rpm-build
 
     - name: Checkout code
       uses: actions/checkout@v4

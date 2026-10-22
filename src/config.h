@@ -22,7 +22,7 @@ inline constexpr const char* ICON_SVG_DIR = "/usr/local/share/icons/hicolor/scal
 inline constexpr const char* PACKAGES_URL = "https://creativecodecat.github.io/makekeeper/packages.json";
 
 // Version
-inline constexpr const char* VERSION = "0.1.0";
+inline constexpr const char* VERSION = "1.0.0";
 
 } // namespace config
 } // namespace makekeeper
