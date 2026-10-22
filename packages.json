@@ -1,5 +1,5 @@
 {
-    "version": "1.0.8",
+    "version": "1.0.9",
     "packages": [
         {
             "name": "bfetch",
@@ -123,6 +123,12 @@
             "url": "https://github.com/CreativeCodeCat/xroot.git",
             "description": "Run a command by clicking the X root window",
             "category": "utility"
+        },
+        {
+            "name": "xwingridselect",
+            "url": "https://github.com/CreativeCodeCat/xwingridselect.git",
+            "description": "X11 window switcher that draws a colorful grid of windows",
+            "category": "menu"
         },
         {
             "name": "youtube-dl",
