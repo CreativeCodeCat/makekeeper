@@ -26,15 +26,6 @@ const char* CARD_TITLE_STYLE = "font-size: 12px; font-weight: 500;";
 const char* CARD_VALUE_STYLE = "color: palette(highlight); font-size: 32px; font-weight: bold;";
 const char* CARD_DETAIL_STYLE = "font-size: 11px;";
 
-const char* PRIMARY_BUTTON_STYLE =
-    "QPushButton { background-color: palette(highlight); color: palette(highlighted-text); border: 1px solid palette(highlight); border-radius: 4px; padding: 8px 18px; font-size: 13px; font-weight: 500; }"
-    "QPushButton:hover { border-color: palette(highlighted-text); }"
-    "QPushButton:disabled { background-color: palette(button); color: palette(mid); border-color: palette(mid); }";
-const char* SECONDARY_BUTTON_STYLE =
-    "QPushButton { background-color: palette(button); color: palette(button-text); border: 1px solid palette(mid); border-radius: 4px; padding: 8px 18px; font-size: 13px; font-weight: 500; }"
-    "QPushButton:hover { border-color: palette(highlight); }"
-    "QPushButton:disabled { color: palette(mid); }";
-
 QString status_style(const QColor& color) {
     return QString("color: %1; font-size: 20px; font-weight: bold;").arg(color.name());
 }
@@ -112,13 +103,13 @@ void OverviewView::setup_ui() {
 
     sync_btn_ = new QPushButton("Sync Catalog", this);
     sync_btn_->setToolTip("Download the latest package catalog");
-    sync_btn_->setStyleSheet(PRIMARY_BUTTON_STYLE);
+    sync_btn_->setStyleSheet(theme::primary_button_style());
     QObject::connect(sync_btn_, &QPushButton::clicked, this, [this]() { run_command("sync"); });
     actions_layout->addWidget(sync_btn_);
 
     update_all_btn_ = new QPushButton("Update All", this);
     update_all_btn_->setToolTip("Pull, rebuild and reinstall every package installed from Git");
-    update_all_btn_->setStyleSheet(SECONDARY_BUTTON_STYLE);
+    update_all_btn_->setStyleSheet(theme::secondary_button_style());
     QObject::connect(update_all_btn_, &QPushButton::clicked, this, [this]() { run_command("update"); });
     actions_layout->addWidget(update_all_btn_);
 

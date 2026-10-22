@@ -1,21 +1,13 @@
 #include "search.h"
 #include "../config.h"
 #include "../utils.h"
+#include "../colors.h"
 #include <iostream>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <algorithm>
 
 using json = nlohmann::json;
-
-// ANSI color codes
-namespace colors {
-    const char* reset = "\033[0m";
-    const char* green = "\033[38;2;102;204;102m";  // #66cc66
-    const char* cyan = "\033[38;2;61;174;233m";    // #3DAEE9
-    const char* gray = "\033[38;2;127;133;139m";    // #7F858B
-    const char* yellow = "\033[38;2;238;201;85m";  // #EEC955
-}
 
 namespace makekeeper {
 namespace commands {

@@ -27,9 +27,18 @@ QColor success_color();
 QColor warning_color();
 QColor error_color();
 
+// The theme's link colour, adjusted only when it would be hard to read on the background
+QColor link_color();
+
 // Stop a table or list from outlining the current cell. With whole-row selection the highlight
 // already shows the current row, and styles such as Union also frame the focused cell inside it
 void remove_focus_frame(QAbstractItemView* view);
+
+// Shared button stylesheets: primary uses the theme's highlight, secondary looks like a normal
+// button, and danger uses the error colour for destructive actions such as Uninstall
+QString primary_button_style();
+QString secondary_button_style();
+QString danger_button_style();
 
 // A palette colour as #rrggbb, for HTML in rich-text widgets
 QString color_name(QPalette::ColorRole role);

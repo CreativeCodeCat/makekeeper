@@ -68,6 +68,7 @@ set(SOURCES
 set(HEADERS
     src/cli.h
     src/config.h
+    src/colors.h
     src/registry.h
     src/utils.h
     src/commands/install.h

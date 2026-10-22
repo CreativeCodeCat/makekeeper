@@ -2,6 +2,7 @@
 #include "../theme.h"
 #include "../../config.h"
 #include "../../registry.h"
+#include "../../utils.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTableWidget>
@@ -17,12 +18,19 @@
 #include <QAbstractItemView>
 #include <Qt>
 #include <QColor>
+#include <QCoreApplication>
+#include <QDesktopServices>
+#include <QFontMetrics>
+#include <QMessageBox>
+#include <QSettings>
+#include <QUrl>
+#include <QRegularExpression>
 
 namespace makekeeper {
 namespace gui {
 namespace views {
 
-PackagesView::PackagesView(QWidget* parent) : BaseView(parent) {
+PackagesView::PackagesView(QWidget* parent) : BaseView(parent), process_(nullptr) {
     setup_ui();
     load_packages();
 }
@@ -94,24 +102,7 @@ void PackagesView::setup_ui() {
     split_layout->addWidget(table_frame);
 
     // Details panel (right)
-    QFrame* details_frame = new QFrame(this);
-    details_frame->setFixedWidth(300);
-    details_frame->setStyleSheet("QFrame { background-color: palette(base); border: 1px solid palette(mid); border-radius: 4px; }");
-    
-    QVBoxLayout* details_frame_layout = new QVBoxLayout(details_frame);
-    details_frame_layout->setContentsMargins(0, 0, 0, 0);
-    
-    details_panel_ = new QTextEdit(this);
-    details_panel_->setReadOnly(true);
-    details_panel_->setFrameStyle(QFrame::NoFrame);
-    details_panel_->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-    details_panel_->setStyleSheet(
-        "QTextEdit { background-color: palette(base); color: palette(text); border: none; padding: 0px; font-size: 12px; }"
-    );
-    
-    details_frame_layout->addWidget(details_panel_);
-
-    split_layout->addWidget(details_frame);
+    split_layout->addWidget(create_details_panel());
     layout->addLayout(split_layout);
 
     // Terminal logs (bottom)
@@ -192,11 +183,23 @@ void PackagesView::load_packages() {
 
         package_table_->item(i, 0)->setData(Qt::UserRole, description);
         package_table_->item(i, 0)->setData(Qt::UserRole + 1, url);
+        package_table_->item(i, 0)->setData(Qt::UserRole + 2, obj["category"].toString());
     }
     
     // Re-enable sorting and sort by name
     package_table_->setSortingEnabled(true);
     package_table_->sortByColumn(0, Qt::AscendingOrder);
+
+    // Keep the selected package selected after a reload, such as after installing it
+    for (int row = 0; row < package_table_->rowCount(); row++) {
+        if (package_table_->item(row, 0)->text() == selected_name_) {
+            package_table_->selectRow(row);
+            show_details(row);
+            return;
+        }
+    }
+    selected_name_.clear();
+    details_stack_->setCurrentIndex(0);
 }
 
 void PackagesView::on_search_changed(const QString& text) {
@@ -208,61 +211,237 @@ void PackagesView::on_search_changed(const QString& text) {
     package_table_->viewport()->update();
 }
 
+QWidget* PackagesView::create_details_panel() {
+    QFrame* frame = new QFrame(this);
+    frame->setObjectName("detailsPanel");
+    frame->setFixedWidth(300);
+    frame->setStyleSheet("QFrame#detailsPanel { background-color: palette(base); border: 1px solid palette(mid); border-radius: 4px; }");
+
+    QVBoxLayout* frame_layout = new QVBoxLayout(frame);
+    frame_layout->setContentsMargins(0, 0, 0, 0);
+
+    details_stack_ = new QStackedWidget(frame);
+    frame_layout->addWidget(details_stack_);
+
+    // Empty state
+    QLabel* empty_label = new QLabel("Select a package to see its details", details_stack_);
+    empty_label->setAlignment(Qt::AlignCenter);
+    empty_label->setWordWrap(true);
+    empty_label->setStyleSheet("font-size: 12px;");
+    theme::set_secondary(empty_label);
+    details_stack_->addWidget(empty_label);
+
+    // Details page
+    QWidget* page = new QWidget(details_stack_);
+    QVBoxLayout* layout = new QVBoxLayout(page);
+    layout->setContentsMargins(18, 18, 18, 18);
+    layout->setSpacing(0);
+
+    auto section_title = [page](const QString& text) {
+        QLabel* label = new QLabel(text.toUpper(), page);
+        label->setStyleSheet("font-size: 10px; font-weight: bold;");
+        theme::set_secondary(label);
+        return label;
+    };
+
+    name_label_ = new QLabel(page);
+    name_label_->setWordWrap(true);
+    name_label_->setStyleSheet("color: palette(text); font-size: 20px; font-weight: bold;");
+    layout->addWidget(name_label_);
+
+    meta_label_ = new QLabel(page);
+    meta_label_->setStyleSheet("font-size: 12px;");
+    theme::set_secondary(meta_label_);
+    layout->addSpacing(2);
+    layout->addWidget(meta_label_);
+
+    status_label_ = new QLabel(page);
+    layout->addSpacing(12);
+    layout->addWidget(status_label_, 0, Qt::AlignLeft);
+
+    description_label_ = new QLabel(page);
+    description_label_->setWordWrap(true);
+    description_label_->setStyleSheet("color: palette(text); font-size: 13px;");
+    layout->addSpacing(14);
+    layout->addWidget(description_label_);
+
+    QFrame* separator = new QFrame(page);
+    separator->setObjectName("detailsSeparator");
+    separator->setFixedHeight(1);
+    separator->setStyleSheet("QFrame#detailsSeparator { background-color: palette(mid); border: none; }");
+    layout->addSpacing(16);
+    layout->addWidget(separator);
+
+    layout->addSpacing(14);
+    layout->addWidget(section_title("Repository"));
+    repo_label_ = new QLabel(page);
+    repo_label_->setTextFormat(Qt::RichText);
+    repo_label_->setOpenExternalLinks(true);
+    repo_label_->setStyleSheet("font-size: 12px;");
+    layout->addSpacing(4);
+    layout->addWidget(repo_label_);
+
+    installed_title_ = section_title("Installed");
+    installed_label_ = new QLabel(page);
+    installed_label_->setWordWrap(true);
+    installed_label_->setStyleSheet("color: palette(text); font-size: 12px;");
+    layout->addSpacing(12);
+    layout->addWidget(installed_title_);
+    layout->addSpacing(4);
+    layout->addWidget(installed_label_);
+
+    layout->addStretch();
+
+    install_btn_ = new QPushButton(page);
+    QObject::connect(install_btn_, &QPushButton::clicked, this, [this]() { on_install_clicked(); });
+    layout->addWidget(install_btn_);
+
+    repo_btn_ = new QPushButton("Open Repository", page);
+    repo_btn_->setStyleSheet(theme::secondary_button_style());
+    QObject::connect(repo_btn_, &QPushButton::clicked, this, [this]() {
+        QDesktopServices::openUrl(QUrl(selected_url_));
+    });
+    layout->addSpacing(8);
+    layout->addWidget(repo_btn_);
+
+    details_stack_->addWidget(page);
+    return frame;
+}
+
 void PackagesView::on_package_selected() {
     auto selected = package_table_->selectedItems();
     if (selected.isEmpty()) {
         return;
     }
+    show_details(selected[0]->row());
+}
 
-    int row = selected[0]->row();
-    QString name = package_table_->item(row, 0)->text();
+void PackagesView::show_details(int row) {
+    QTableWidgetItem* name_item = package_table_->item(row, 0);
+    QString name = name_item->text();
     QString version = package_table_->item(row, 3)->text();
-    QString description = package_table_->item(row, 0)->data(Qt::UserRole).toString();
-    QString url = package_table_->item(row, 0)->data(Qt::UserRole + 1).toString();
+    QString description = name_item->data(Qt::UserRole).toString();
+    QString url = name_item->data(Qt::UserRole + 1).toString();
+    QString category = name_item->data(Qt::UserRole + 2).toString();
     bool is_installed = installed_names_.contains(name);
 
-    // Rich text can't use palette roles, so take every colour from the active theme
-    QString text_color = theme::color_name(QPalette::Text);
-    QString secondary_color = theme::color_name(QPalette::PlaceholderText);
-    QString link_color = theme::color_name(QPalette::Link);
-    QString status_color = (is_installed ? theme::success_color() : theme::warning_color()).name();
-    QString status_text = is_installed ? "Installed" : "Not installed";
+    selected_name_ = name;
+    selected_url_ = url;
 
-    QString action_buttons;
-    if (is_installed) {
-        action_buttons = QString(
-            "<button style='background-color: " + theme::error_color().name() + "; color: white; padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;'>Uninstall</button>"
-        );
-    } else {
-        action_buttons = QString(
-            "<button style='background-color: " + theme::success_color().name() + "; color: white; padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;'>Install</button>"
-        );
+    name_label_->setText(name);
+
+    QStringList meta;
+    if (!version.isEmpty()) {
+        meta << version;
+    }
+    if (!category.isEmpty()) {
+        meta << category;
+    }
+    meta_label_->setText(meta.join("  ·  "));
+
+    // Status badge in the theme's success or warning colour
+    QColor status_color = is_installed ? theme::success_color() : theme::warning_color();
+    status_label_->setText(is_installed ? "● Installed" : "○ Not installed");
+    status_label_->setStyleSheet(QString(
+        "QLabel { color: %1; border: 1px solid %1; border-radius: 9px; padding: 2px 9px; font-size: 11px; font-weight: 600; }")
+        .arg(status_color.name()));
+
+    description_label_->setText(description.isEmpty() ? "No description available." : description);
+
+    // Show the repository without the scheme or .git suffix, shortened to fit the panel
+    QString display_url = url;
+    display_url.remove(QRegularExpression("^[a-z]+://")).remove(QRegularExpression("\\.git$"));
+    display_url = QFontMetrics(repo_label_->font()).elidedText(display_url, Qt::ElideMiddle, 260);
+    repo_label_->setText(QString("<a href='%1' style='color: %2; text-decoration: none;'>%3</a>")
+        .arg(url.toHtmlEscaped(), theme::link_color().name(), display_url.toHtmlEscaped()));
+    repo_label_->setToolTip(url);
+    repo_btn_->setEnabled(!url.isEmpty());
+
+    // Installed commit and date from the registry
+    auto record = is_installed ? registry::Registry::instance().get(name.toStdString()) : std::nullopt;
+    installed_title_->setVisible(record.has_value());
+    installed_label_->setVisible(record.has_value());
+    if (record) {
+        QString commit = QString::fromStdString(record->commit_hash).left(7);
+        QString date = QString::fromStdString(record->install_date);
+        installed_label_->setText(commit.isEmpty() ? date : QString("%1  ·  commit %2").arg(date, commit));
     }
 
-    QString details = QString(
-        "<div style='padding: 5px;'>"
-        "<h2 style='color: %8; margin: 0 0 8px 0; font-size: 18px; font-weight: 600;'>%1 <span style='font-size: 13px; color: %9; font-weight: 400; margin-left: 8px;'>%2</span></h2>"
-        "<div style='background-color: %11; padding: 8px 12px; border-radius: 4px; margin: 12px 0; color: %8; font-size: 12px; line-height: 1.4;'>%3</div>"
-        "<div style='margin: 15px 0;'>"
-        "<div style='color: %9; font-size: 11px; margin-bottom: 4px;'>Repository</div>"
-        "<div style='color: %10; font-size: 12px;'><a href='%4' style='color: %10; text-decoration: none;'>%4</a></div>"
-        "</div>"
-        "<div style='margin: 12px 0;'>"
-        "<div style='color: %9; font-size: 11px; margin-bottom: 4px;'>Status</div>"
-        "<div style='color: %5; font-size: 12px; font-weight: 500;'>%6</div>"
-        "</div>"
-        "<div style='margin: 20px 0 10px 0;'>"
-        "<div style='color: %9; font-size: 11px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;'>Actions</div>"
-        "<div style='display: flex; flex-direction: column; gap: 8px;'>%7</div>"
-        "<button style='background-color: %12; color: %13; padding: 8px 12px; border: 1px solid %14; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 8px;'>Documentation</button>"
-        "</div>"
-        "</div>"
-    ).arg(name, version, description, url, status_color, status_text, action_buttons, text_color, secondary_color)
-     .arg(link_color, theme::color_name(QPalette::AlternateBase), theme::color_name(QPalette::Button),
-          theme::color_name(QPalette::ButtonText), theme::color_name(QPalette::Mid));
+    install_btn_->setText(is_installed ? "Uninstall" : "Install");
+    install_btn_->setStyleSheet(is_installed ? theme::danger_button_style() : theme::primary_button_style());
+    install_btn_->setEnabled(process_ == nullptr);
 
-    details_panel_->setHtml(details);
-    terminal_panel_->append(QString("> Selected: %1").arg(name));
+    details_stack_->setCurrentIndex(1);
+}
+
+void PackagesView::on_install_clicked() {
+    if (selected_name_.isEmpty() || process_) {
+        return;
+    }
+
+    if (installed_names_.contains(selected_name_)) {
+        auto answer = QMessageBox::question(this, "Uninstall " + selected_name_,
+            QString("Uninstall %1? This runs its 'make uninstall' and removes the files MakeKeeper tracked for it.").arg(selected_name_));
+        if (answer == QMessageBox::Yes) {
+            run_command({"uninstall", selected_name_});
+        }
+        return;
+    }
+
+    // Respect the "Confirm before installing packages" setting
+    QSettings settings(QString::fromStdString(utils::user_config_dir()) + "/settings.conf", QSettings::IniFormat);
+    if (settings.value("confirm_install", true).toBool()) {
+        auto answer = QMessageBox::question(this, "Install " + selected_name_,
+            QString("Install %1 from %2?\n\nIts Makefile will run with root privileges, so only install software you trust.")
+                .arg(selected_name_, selected_url_));
+        if (answer != QMessageBox::Yes) {
+            return;
+        }
+    }
+    run_command({"install", selected_name_});
+}
+
+void PackagesView::log_to_terminal(const QString& message) {
+    terminal_panel_->append("> " + message);
+}
+
+void PackagesView::run_command(const QStringList& args) {
+    process_ = new QProcess(this);
+    process_->setProcessChannelMode(QProcess::MergedChannels);
+    install_btn_->setEnabled(false);
+
+    QObject::connect(process_, &QProcess::readyReadStandardOutput, this, [this]() {
+        terminal_panel_->append(QString::fromUtf8(process_->readAllStandardOutput()).trimmed());
+    });
+
+    auto finish = [this]() {
+        process_->deleteLater();
+        process_ = nullptr;
+        install_btn_->setEnabled(true);
+        load_packages();
+    };
+
+    QObject::connect(process_, &QProcess::finished, this, [this, finish](int exit_code, QProcess::ExitStatus exit_status) {
+        if (exit_status == QProcess::CrashExit) {
+            log_to_terminal("Command crashed");
+        } else if (exit_code == 0) {
+            log_to_terminal("Command completed successfully");
+        } else {
+            log_to_terminal("Command failed with exit code: " + QString::number(exit_code));
+        }
+        finish();
+    });
+
+    QObject::connect(process_, &QProcess::errorOccurred, this, [this, finish](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart) {
+            log_to_terminal("Failed to start makekeeper");
+            finish();
+        }
+    });
+
+    // Run as the user; makekeeper asks for root through makekeeper-helper only for the steps that need it
+    log_to_terminal("Running: makekeeper " + args.join(' '));
+    process_->start(QCoreApplication::applicationFilePath(), args);
 }
 
 } // namespace views

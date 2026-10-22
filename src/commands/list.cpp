@@ -1,6 +1,7 @@
 #include "list.h"
 #include "../registry.h"
 #include "../config.h"
+#include "../colors.h"
 #include <iostream>
 #include <iomanip>
 
@@ -42,11 +43,16 @@ int list(const std::vector<std::string>& args) {
     std::cout << std::endl;
 
     for (const auto& record : valid_records) {
-        std::cout << "  " << record.name << std::endl;
-        std::cout << "    URL: " << (record.url.empty() ? "N/A" : record.url) << std::endl;
-        std::cout << "    Installed: " << record.install_date << std::endl;
+        std::cout << "  " << colors::green << record.name << colors::reset << std::endl;
+        if (record.url.empty()) {
+            std::cout << "    URL: " << colors::gray << "N/A" << colors::reset << std::endl;
+        } else {
+            std::cout << "    URL: " << colors::cyan << record.url << colors::reset << std::endl;
+        }
+        std::cout << "    Installed: " << colors::gray << record.install_date << colors::reset << std::endl;
         if (!record.commit_hash.empty()) {
-            std::cout << "    Commit: " << record.commit_hash.substr(0, 7) << std::endl;
+            // Yellow, like git shows commit hashes
+            std::cout << "    Commit: " << colors::yellow << record.commit_hash.substr(0, 7) << colors::reset << std::endl;
         }
         std::cout << std::endl;
     }
