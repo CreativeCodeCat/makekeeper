@@ -207,15 +207,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # Collect the packages in dist/, not releases/: the checkout contains old packages
+    # committed in releases/, which would otherwise be uploaded with every release
     - name: Download all artifacts
       uses: actions/download-artifact@v4
       with:
-        path: releases
+        path: dist
 
-    - name: Move packages to releases folder
+    - name: Move packages to dist folder
       run: |
-        find releases -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.pkg.tar.zst" -o -name "*.AppImage" \) -exec mv {} releases/ \;
-        find releases -type d -empty -delete
+        find dist -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.pkg.tar.zst" -o -name "*.AppImage" \) -exec mv {} dist/ \;
+        find dist -type d -empty -delete
+        ls -l dist
 
     - name: Upload packages to GitHub release
       if: startsWith(github.ref, 'refs/tags/')
@@ -223,8 +226,8 @@ jobs:
         GH_TOKEN: ${{ github.token }}
       run: |
         if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
-          gh release upload "$GITHUB_REF_NAME" releases/*.deb releases/*.rpm releases/*.pkg.tar.zst releases/*.AppImage --clobber
+          gh release upload "$GITHUB_REF_NAME" dist/*.deb dist/*.rpm dist/*.pkg.tar.zst dist/*.AppImage --clobber
         else
-          gh release create "$GITHUB_REF_NAME" releases/*.deb releases/*.rpm releases/*.pkg.tar.zst releases/*.AppImage \
+          gh release create "$GITHUB_REF_NAME" dist/*.deb dist/*.rpm dist/*.pkg.tar.zst dist/*.AppImage \
             --title "$GITHUB_REF_NAME" --generate-notes
         fi
