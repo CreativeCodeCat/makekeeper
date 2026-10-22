@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file. See [conven
 * Add per-package build_flags support from the package catalog ([b8cfdb4](https://github.com/CreativeCodeCat/makekeeper/commit/b8cfdb4))
 * Add CMake support alongside Makefile-based package installs ([e326592](https://github.com/CreativeCodeCat/makekeeper/commit/e326592))
 
+### :bug: Bug Fixes:
+
+* Re-clone a package's source when update finds it missing ([bc309c6](https://github.com/CreativeCodeCat/makekeeper/commit/bc309c6))
+
 ### :broom: Maintenance & Cleanup:
 
 * remove old package files from releases ([6f9c1e1](https://github.com/CreativeCodeCat/makekeeper/commit/6f9c1e1))
