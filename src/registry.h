@@ -17,6 +17,7 @@ struct Record {
     std::vector<std::string> files;
     std::vector<std::string> symlinks;
     std::string build_system = "make";  // "make" or "cmake"
+    std::vector<std::string> build_flags;  // extra arguments passed to the build step, from the catalog
 };
 
 class Registry {

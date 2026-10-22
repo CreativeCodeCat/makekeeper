@@ -71,7 +71,9 @@ static UpdateResult update_package(registry::Record record, registry::Registry& 
         // CMake has no standard clean target guarantee; start from a fresh configure instead
         std::error_code ec;
         fs::remove_all(build_dir, ec);
-        if (utils::exec_as_user("cmake", {"-S", record.source_dir, "-B", build_dir, "-DCMAKE_BUILD_TYPE=Release"}) != 0) {
+        std::vector<std::string> configure_args = {"-S", record.source_dir, "-B", build_dir, "-DCMAKE_BUILD_TYPE=Release"};
+        configure_args.insert(configure_args.end(), record.build_flags.begin(), record.build_flags.end());
+        if (utils::exec_as_user("cmake", configure_args) != 0) {
             std::cerr << indent << "Error: CMake configure failed." << std::endl;
             return UpdateResult::Failed;
         }
@@ -91,7 +93,9 @@ static UpdateResult update_package(registry::Record record, registry::Registry& 
             std::cerr << indent << "Error: Clean failed." << std::endl;
             return UpdateResult::Failed;
         }
-        if (utils::exec_as_user("make", {"-C", record.source_dir}) != 0) {
+        std::vector<std::string> make_args = {"-C", record.source_dir};
+        make_args.insert(make_args.end(), record.build_flags.begin(), record.build_flags.end());
+        if (utils::exec_as_user("make", make_args) != 0) {
             std::cerr << indent << "Error: Build failed." << std::endl;
             return UpdateResult::Failed;
         }

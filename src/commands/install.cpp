@@ -93,6 +93,7 @@ int install(const std::vector<std::string>& args) {
     // Determine if source is a URL, directory, or package name
     std::string url;
     std::string source_dir;
+    std::vector<std::string> build_flags;
 
     if (source.find("://") != std::string::npos || source.find("git@") == 0) {
         // It's a URL
@@ -146,6 +147,15 @@ int install(const std::vector<std::string>& args) {
                                 name = source;
                             }
                             source_dir = utils::user_sources_dir() + "/" + name;
+                            // Extra arguments the catalog asks to pass to the build step (not the
+                            // privileged install step; see utils::run_helper's fixed operations)
+                            if (item.contains("build_flags") && item["build_flags"].is_array()) {
+                                for (const auto& flag : item["build_flags"]) {
+                                    if (flag.is_string()) {
+                                        build_flags.push_back(flag.get<std::string>());
+                                    }
+                                }
+                            }
                             std::cout << "Found package in catalog: " << name << std::endl;
                             break;
                         }
@@ -258,7 +268,9 @@ int install(const std::vector<std::string>& args) {
     if (build_system == "cmake") {
         if (!already_built) {
             std::cout << "Configuring..." << std::endl;
-            result = utils::exec_as_user("cmake", {"-S", source_dir, "-B", build_dir, "-DCMAKE_BUILD_TYPE=Release"});
+            std::vector<std::string> configure_args = {"-S", source_dir, "-B", build_dir, "-DCMAKE_BUILD_TYPE=Release"};
+            configure_args.insert(configure_args.end(), build_flags.begin(), build_flags.end());
+            result = utils::exec_as_user("cmake", configure_args);
             if (result != 0) {
                 std::cerr << "Error: CMake configure failed." << std::endl;
                 return 1;
@@ -284,7 +296,9 @@ int install(const std::vector<std::string>& args) {
         // Build only if not already built
         if (!already_built) {
             std::cout << "Building..." << std::endl;
-            result = utils::exec_as_user("make", {"-C", source_dir});
+            std::vector<std::string> make_args = {"-C", source_dir};
+            make_args.insert(make_args.end(), build_flags.begin(), build_flags.end());
+            result = utils::exec_as_user("make", make_args);
             if (result != 0) {
                 std::cerr << "Error: Build failed." << std::endl;
                 return 1;
@@ -330,6 +344,7 @@ int install(const std::vector<std::string>& args) {
     record.commit_hash = commit_hash;
     record.install_date = utils::get_timestamp();
     record.build_system = build_system;
+    record.build_flags = build_flags;
 
     // Track installed files from common locations (add regardless, install succeeded)
     std::string binary_path = std::string(config::BIN_DIR) + "/" + name;

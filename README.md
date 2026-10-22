@@ -180,16 +180,19 @@ The catalog is a JSON file on the `docs` branch. To suggest a package, open a pu
 
 ```json
 {
-  "name": "lf",
-  "url": "https://github.com/gokcehan/lf.git",
-  "description": "Terminal file manager",
-  "category": "file-manager"
+  "name": "fastfetch",
+  "url": "https://github.com/fastfetch-cli/fastfetch.git",
+  "description": "A fast, feature-rich system information tool",
+  "category": "system",
+  "build_flags": ["-DENABLE_VULKAN=OFF"]
 }
 ```
 
-In the same pull request, bump the catalog's top-level `"version"` (for example from `1.0.4` to `1.0.5`). `makekeeper sync` only downloads the catalog again when its version changes.
+In the same pull request, bump the catalog's top-level `"version"` (for example from `1.0.6` to `1.0.7`). `makekeeper sync` only downloads the catalog again when its version changes.
 
 The repository must have a `Makefile` or a `CMakeLists.txt` at its root. A Makefile needs `install` (and ideally `uninstall`) targets; a CMakeLists.txt needs an `install()` rule (CMake has no built-in uninstall, so `uninstall` only works if the project defines its own target). The [project site](https://creativecodecat.github.io/makekeeper/#adding-a-package) has the full guide, including what each field means.
+
+`build_flags` is optional: extra arguments appended to the build command (`cmake`'s configure step, or `make`'s build invocation), for projects that need a flag to build cleanly, like disabling an optional dependency that isn't installed. It only reaches the build step that runs as your user, never the privileged `install`/`uninstall` step.
 
 ## Development
 
