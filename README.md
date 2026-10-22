@@ -153,7 +153,7 @@ Or launch **MakeKeeper** from your application menu. The GUI has views for an ov
 | `/var/lib/makekeeper/cache/packages.json` | Synced package catalog |
 | `/var/lib/makekeeper/cache/<name>/` | Cloned sources of Git-based packages |
 
-The catalog is fetched from <https://creativecodecat.github.io/makekeeper/packages.json>. Its source lives in [docs/packages.json](docs/packages.json).
+The catalog is fetched from <https://creativecodecat.github.io/makekeeper/packages.json>. Its source lives in [docs/packages.json](https://github.com/CreativeCodeCat/makekeeper/blob/docs/packages.json).
 
 ## Security
 
