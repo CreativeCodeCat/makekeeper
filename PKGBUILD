@@ -6,9 +6,9 @@ pkgdesc="A safer installer for Makefile-based Linux applications"
 arch=('x86_64')
 url="https://github.com/CreativeCodeCat/makekeeper"
 license=('GPL-3.0')
-depends=('qt6-base' 'qt6-network' 'libgit2' 'curl' 'nlohmann-json')
-makedepends=('cmake' 'git')
-options=('strip')
+depends=('qt6-base' 'libgit2' 'curl' 'git' 'make' 'polkit')
+makedepends=('cmake' 'git' 'nlohmann-json')
+options=('strip' '!debug')
 
 source=("git+https://github.com/CreativeCodeCat/makekeeper.git")
 sha256sums=('SKIP')

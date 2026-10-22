@@ -10,29 +10,25 @@ jobs:
   build-arch:
     runs-on: ubuntu-latest
     container: archlinux/archlinux:latest
-    
+
     steps:
+    # git must be installed before checkout so the workspace is a real repository for makepkg to clone
+    - name: Install build dependencies
+      run: pacman -Syu --needed --noconfirm base-devel git cmake qt6-base libgit2 curl nlohmann-json polkit
+
     - name: Checkout code
       uses: actions/checkout@v4
-    
-    - name: Install Rust
-      run: pacman -Sy --noconfirm rust base-devel binutils
-    
-    - name: Build release
-      run: cargo build --release
-    
-    - name: Create releases directory
-      run: mkdir -p releases
-    
+
     - name: Create .pkg.tar.zst
       run: |
-        pacman -Sy --needed --noconfirm base-devel rust cargo git
+        # Build the checked-out commit instead of the PKGBUILD's upstream source
+        sed -i "s|git+https://github.com/CreativeCodeCat/makekeeper.git|git+file://${GITHUB_WORKSPACE}#commit=${GITHUB_SHA}|" PKGBUILD
         useradd -m builder
         chown -R builder:builder "${GITHUB_WORKSPACE}"
-        su builder -c "cd '${GITHUB_WORKSPACE}' && makepkg --clean --force"
+        su builder -c "cd '${GITHUB_WORKSPACE}' && makepkg --clean --force --nocheck"
         mkdir -p releases
-        cp makekeeper-0.1.0-1-x86_64.pkg.tar.zst releases/
-    
+        cp makekeeper-*.pkg.tar.zst releases/
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -41,44 +37,49 @@ jobs:
 
   build-ubuntu:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-    
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake pkg-config qt6-base-dev libgit2-dev libcurl4-openssl-dev nlohmann-json3-dev
+
     - name: Build release
-      run: cargo build --release
-    
-    - name: Create releases directory
-      run: mkdir -p releases
-    
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --parallel
+
     - name: Create .deb
       run: |
+        VERSION=$(grep -oP 'project\(makekeeper VERSION \K[0-9.]+' CMakeLists.txt)
         mkdir -p releases/deb/DEBIAN
-        mkdir -p releases/deb/usr/local/bin
-        mkdir -p releases/deb/usr/local/share/man/man1
-        install -m 755 target/release/makekeeper releases/deb/usr/local/bin/makekeeper
-        install -m 644 makekeeper.1 releases/deb/usr/local/share/man/man1/makekeeper.1
+        make install DESTDIR="$PWD/releases/deb"
+        strip releases/deb/usr/local/bin/makekeeper
+
+        # Work out shared library dependencies from the built binary
+        mkdir -p debian && touch debian/control
+        SHLIBS=$(dpkg-shlibdeps -O releases/deb/usr/local/bin/makekeeper | sed 's/^shlibs:Depends=//')
+        rm -rf debian
+
         cat > releases/deb/DEBIAN/control <<EOF
         Package: makekeeper
-        Version: 0.1.0
+        Version: ${VERSION}
         Section: utils
         Priority: optional
         Architecture: amd64
+        Depends: ${SHLIBS}, git, make, pkexec | policykit-1
         Maintainer: makekeeper contributors
+        Homepage: https://github.com/CreativeCodeCat/makekeeper
         Description: A safer installer for Makefile-based Linux applications
-         makekeeper provides a controlled way to install applications that use GNU Make build systems.
+         MakeKeeper installs, tracks, updates and uninstalls applications that use
+         GNU Make build systems, from the command line or a Qt GUI.
         EOF
-        dpkg-deb -b releases/deb releases/makekeeper_0.1.0_amd64.deb
+        dpkg-deb --root-owner-group -b releases/deb "releases/makekeeper_${VERSION}_amd64.deb"
         rm -rf releases/deb
-    
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -90,49 +91,58 @@ jobs:
     container: fedora:latest
 
     steps:
+    - name: Install build dependencies
+      run: dnf install -y cmake gcc-c++ make git pkgconf-pkg-config qt6-qtbase-devel libgit2-devel libcurl-devel json-devel rpm-build
+
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install Rust and RPM tools
-      run: dnf install -y rust cargo rpm-build
-
     - name: Build release
-      run: cargo build --release
-
-    - name: Create releases directory
-      run: mkdir -p releases
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --parallel
 
     - name: Create .rpm
       run: |
-        mkdir -p releases/rpmroot/usr/local/bin
-        mkdir -p releases/rpmroot/usr/local/share/man/man1
-        install -m 755 target/release/makekeeper releases/rpmroot/usr/local/bin/makekeeper
-        install -m 644 makekeeper.1 releases/rpmroot/usr/local/share/man/man1/makekeeper.1
+        VERSION=$(grep -oP 'project\(makekeeper VERSION \K[0-9.]+' CMakeLists.txt)
+        make install DESTDIR="$GITHUB_WORKSPACE/releases/staging"
         cat > releases/makekeeper.spec <<EOF
         Name: makekeeper
-        Version: 0.1.0
+        Version: ${VERSION}
         Release: 1
         Summary: A safer installer for Makefile-based Linux applications
         License: GPL-3.0
-        BuildRoot: %{_builddir}/%{name}-root
-        AutoReqProv: no
+        URL: https://github.com/CreativeCodeCat/makekeeper
+        Requires: git make polkit
+
+        %define debug_package %{nil}
 
         %description
-        makekeeper provides a controlled way to install applications that use GNU Make build systems.
+        MakeKeeper installs, tracks, updates and uninstalls applications that use
+        GNU Make build systems, from the command line or a Qt GUI.
+
+        %install
+        cp -a %{staging}/. %{buildroot}/
 
         %files
         /usr/local/bin/makekeeper
         /usr/local/share/man/man1/makekeeper.1
+        /usr/local/share/applications/makekeeper.desktop
+        /usr/local/share/icons/hicolor/128x128/apps/makekeeper-128.png
+        /usr/local/share/icons/hicolor/scalable/apps/makekeeper.svg
+        /usr/share/fish/vendor_completions.d/makekeeper.fish
         EOF
-        rpmbuild -bb releases/makekeeper.spec --buildroot $GITHUB_WORKSPACE/releases/rpmroot --define "_rpmdir $GITHUB_WORKSPACE/releases"
-        rm -rf releases/rpmroot releases/makekeeper.spec
+        rpmbuild -bb releases/makekeeper.spec \
+          --define "staging $GITHUB_WORKSPACE/releases/staging" \
+          --define "_rpmdir $GITHUB_WORKSPACE/releases"
+        rm -rf releases/staging releases/makekeeper.spec
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: fedora-package
         path: releases/**/*.rpm
-        
+
   release:
     needs: [build-arch, build-ubuntu, build-fedora]
     runs-on: ubuntu-latest
@@ -153,10 +163,14 @@ jobs:
         find releases -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.pkg.tar.zst" \) -exec mv {} releases/ \;
         find releases -type d -empty -delete
 
-    - name: Commit and push packages
+    - name: Upload packages to GitHub release
+      if: startsWith(github.ref, 'refs/tags/')
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add releases/
-        git commit -m "chore(release): Add release packages"
-        git push
+        if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+          gh release upload "$GITHUB_REF_NAME" releases/*.deb releases/*.rpm releases/*.pkg.tar.zst --clobber
+        else
+          gh release create "$GITHUB_REF_NAME" releases/*.deb releases/*.rpm releases/*.pkg.tar.zst \
+            --title "$GITHUB_REF_NAME" --generate-notes
+        fi

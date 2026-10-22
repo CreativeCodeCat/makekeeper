@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=MakeKeeper
 Comment=A safer installer and manager for Makefile-based Linux applications
-Exec=/usr/local/bin/makekeeper gui
+Exec=makekeeper gui
 Icon=makekeeper
 Type=Application
 Categories=System;PackageManager;
